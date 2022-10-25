@@ -1,0 +1,171 @@
+---
+title: "Polynomial Regression on Cumulative Data"
+author: "Lyndsey Umsted"
+date: "2022-10-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Here I will be fitting a Polynomial Regression Model to the Cumulative Data
+
+Loading necessary libraries
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(tidymodels)
+library(corrplot)
+library(ggthemes)
+tidymodels_prefer()
+```
+
+Splitting into training and testing
+```{r}
+set.seed(24)
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = confirmed_cases)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+First, we set up a linear regression specification:
+
+```{r}
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+```
+
+We can use the linear model specification `lm_spec` to add a preprocessing unit with `recipe()` and `step_poly()` to create the polynomial expansion of the predictors. We can combine these two with `workflow()` to create a workflow object.
+
+```{r}
+cum_poly_rec <- recipe(confirmed_cases ~ ., data = pandemic_cum_train) %>%
+  step_poly(all_predictors(), degree = 2)
+
+cum_poly_wf <- workflow() %>%
+  add_recipe(cum_poly_rec) %>%
+  add_model(lm_spec)
+
+cum_poly_wf
+```
+
+Now fitting model to training data set:
+
+```{r}
+cum_poly_fit <- fit(cum_poly_wf, data = pandemic_cum_train)
+```
+
+The testing RMSE is then calculated as:
+
+```{r}
+augment(cum_poly_fit, new_data = pandemic_cum_test) %>%
+  rmse(truth = confirmed_cases, estimate = .pred)
+```
+
+Above I used the degree 2 in my polynomial fit, in order to find the degree that yields the "closest fit" I need to hyperparamter tune. Using k-Fold Cross Validiation to do this
+
+need:
+- A parsnip/workflow object with one or more arguments marked for tuning,
+
+- A `vfold_cv` rsample object of the cross-validation resamples, &
+
+- A tibble denoting the values of hyperparameter values to be explored.
+
+
+Creating a new recipe with `degree = tune()` indicates that I intend for degree to be tuned.
+
+
+```{r}
+cum_poly_tuned_rec <- recipe(confirmed_cases ~ ., data = pandemic_cum_train) %>%
+  step_poly(all_predictors(), degree = tune())
+
+cum_poly_tuned_wf <- workflow() %>%
+  add_recipe(cum_poly_tuned_rec) %>%
+  add_model(lm_spec)
+```
+
+
+The next thing we need to create is the k-Fold data set. This can be done using the `vfold_cv()` function. Note that the function uses `v` instead of `k`, which is the terminology of ISLR. Common choices for k/v are 5 or 10. Here, we use 10 folds.
+
+```{r}
+pandemic_cum_folds <- vfold_cv(pandemic_cum_train, v = 10)
+pandemic_cum_folds
+```
+
+
+The result is a tibble of `vfold_splits` which is quite similar to the `rsplit` object we saw earlier.
+
+The last thing we need is a tibble of possible values we want to explore. Each of the tuneable parameters in `tidymodels` has an associated function in the `dials` package. We need to use the `degree()` function here, and we extend the range to have a max of 10. This `dials` function is then passed to `grid_regular()` to create a regular grid of values.
+
+
+```{r}
+cum_degree_grid <- grid_regular(degree(range = c(1, 10)), levels = 10)
+cum_degree_grid
+```
+
+
+Now that all the necessary objects have been created, we can pass them to `tune_grid()`, which will fit the models within each fold for each value specified in `degree_grid`.
+
+```{r}
+cum_tune_res <- tune_grid(
+  object = cum_poly_tuned_wf, 
+  resamples = pandemic_cum_folds, 
+  grid = cum_degree_grid
+)
+```
+
+Visual representation of hyperparameter performance
+
+```{r}
+autoplot(cum_tune_res)
+```
+
+
+```{r}
+collect_metrics(cum_tune_res)
+```
+
+
+show the best performing models:
+
+```{r}
+show_best(cum_tune_res, metric = "rmse")
+```
+
+
+```{r}
+select_by_one_std_err(cum_tune_res, degree, metric = "rmse")
+```
+
+```{r}
+best_degree <- select_by_one_std_err(cum_tune_res, degree, metric = "rmse")
+```
+
+
+Final wf with best degree:
+
+```{r}
+final_wf_cum <- finalize_workflow(cum_poly_wf, best_degree)
+
+final_wf_cum
+```
+
+
+```{r}
+cum_final_fit <- fit(final_wf_cum, pandemic_cum_train)
+
+cum_final_fit
+```
+
+
+Finally, we assess its accuracy on the testing set:
+
+```{r}
+augment(cum_final_fit, new_data = pandemic_cum_test) %>%
+  rmse(truth = confirmed_cases, estimate = .pred)
+```
+
+
