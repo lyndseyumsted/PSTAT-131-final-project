@@ -102,8 +102,8 @@ pandemic_new_cum <- pandemic_weekly_og %>%
 # that I want
 library(dplyr)
 pandemic_cum_sub <- pandemic_new_cum %>%
-  select("confirmed_cases", "population", "Mean_Tmax", "Urban", "Pop2010", 
-         "OHU2010", "LowIncomeTracts", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
+  select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", "Pop2010", 
+         "OHU2010", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
          "Traffic", "Groundwater.Threats", "Haz..Waste", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
          "Education", "Linguistic.Isolation", "Poverty", "Unemployment", "Pop..Char.", "under_10_.", "Age11_to_64_.", "over_65_.", 
          "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.", "retail_change", "grocery_change", 
@@ -191,8 +191,8 @@ pandemic_new_weekly <- pandemic_weekly_og %>%
 # that I want
 library(dplyr)
 pandemic_weekly_sub <- pandemic_new_weekly %>%
-  select("new_cases", "population", "week", "Mean_Tmax", "Urban", "Pop2010", 
-         "OHU2010", "LowIncomeTracts", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
+  select("ID_co", "new_cases", "population", "week", "Mean_Tmax", "Urban", "Pop2010", 
+         "OHU2010", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
          "Traffic", "Groundwater.Threats", "Haz..Waste", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
          "Education", "Linguistic.Isolation", "Poverty", "Unemployment", "Pop..Char.", "under_10_.", "Age11_to_64_.", "over_65_.", 
          "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.", "retail_change", "grocery_change", 
@@ -235,4 +235,48 @@ pandemic_cum
 pandemic_weekly
 
 
+
+
+pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "Pop..Char.") %>%
+  mutate(Pop..Char. = cut(Pop..Char., breaks = 
+                            seq(min(Pop..Char.), max(Pop..Char.), by = 3), 
+                          include.lowest = TRUE)) %>%
+  group_by(Pop..Char.) %>%
+  na.omit(Pop..Char.) %>%
+  ggplot(aes(Pop..Char., confirmed_cases), confirmed_cases) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per 3 % Pop Char Intervals"
+  )
+
+
+pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "Education") %>%
+  mutate(Education = cut(Education, breaks = 
+                            seq(min(Education), max(Education), by = 3), 
+                          include.lowest = TRUE)) %>%
+  group_by(Education) %>%
+  na.omit(Education) %>%
+  ggplot(aes(Education, confirmed_cases), confirmed_cases) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per 3 % Pop Char Intervals"
+  )
+
+pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "Poverty") %>%
+  mutate(Poverty = cut(Poverty, breaks = 
+                            seq(min(Poverty), max(Poverty), by = 3), 
+                          include.lowest = TRUE)) %>%
+  group_by(Poverty) %>%
+  na.omit(Poverty) %>%
+  ggplot(aes(Poverty, confirmed_cases), confirmed_cases) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per 3 % Pop Char Intervals"
+  )
 

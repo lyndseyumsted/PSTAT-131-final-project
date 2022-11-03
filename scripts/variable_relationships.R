@@ -8,6 +8,25 @@
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ HISPANIC
+
+# distribution of confirmed cases for different Hispanic Population 
+# percentiles:
+
+pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "Hispanic_.") %>%
+  mutate(Hispanic_. = cut(Hispanic_., breaks = 
+                            seq(min(Hispanic_.), max(Hispanic_.), by = 3), 
+                          include.lowest = TRUE)) %>%
+  group_by(Hispanic_.) %>%
+  na.omit(Hispanic_.) %>%
+  ggplot(aes(reorder(Hispanic_., confirmed_cases), confirmed_cases)) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per 3 % Hispanic Makeup Intervals"
+  )
+
+
 # mean cumulative cases and hispanic:
 
 small_df_hispanic <- pandemic_cum %>%
@@ -65,7 +84,6 @@ fit_hispanic <- glm(small_df_hispanic$confirmed_cases ~ small_df_hispanic$interv
 summary(fit_hispanic)
 
 plot(small_df_hispanic$interval, small_df_hispanic$confirmed_cases)
-
 
 
 # mean new cases and hispanic:
@@ -129,6 +147,22 @@ plot(small_df_hispanic$interval, small_df_hispanic$new_cases)
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ URBAN
+
+# distribution of confirmed cases per 5% intervals
+
+pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "Urban") %>%
+  mutate(Urban = cut(Urban, breaks = 
+                            seq(min(Urban), max(Urban), by = 0.05), 
+                          include.lowest = TRUE)) %>%
+  group_by(Urban) %>%
+  na.omit(Urban) %>%
+  ggplot(aes(reorder(Urban, confirmed_cases), confirmed_cases)) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per Intervals"
+  )
 
 # mean cumulative cases and Urban:
 
@@ -254,6 +288,55 @@ plot(small_df_urban$interval, small_df_urban$new_cases)
 
 
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ under_10
+
+
+
+# distribution of confirmed cases for each of the three age groups
+
+dist_10 <- pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "under_10_.") %>%
+  mutate(under_10_. = cut(under_10_., breaks = 
+                       seq(min(under_10_.), max(under_10_.), by = 0.5), 
+                     include.lowest = TRUE)) %>%
+  group_by(under_10_.) %>%
+  na.omit(under_10_.) %>%
+  ggplot(aes(under_10_., confirmed_cases), confirmed_cases) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per Intervals"
+  )
+
+dist_35 <- pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "Age11_to_64_.") %>%
+  mutate(Age11_to_64_. = cut(Age11_to_64_., breaks = 
+                            seq(min(Age11_to_64_.), max(Age11_to_64_.), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(Age11_to_64_.) %>%
+  na.omit(Age11_to_64_.) %>%
+  ggplot(aes(Age11_to_64_., confirmed_cases), confirmed_cases) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per Intervals"
+  )
+
+dist_65 <- pandemic_cum %>% 
+  dplyr::select("confirmed_cases", "over_65_.") %>%
+  mutate(over_65_. = cut(over_65_., breaks = 
+                               seq(min(over_65_.), max(over_65_.), by = 1), 
+                             include.lowest = TRUE)) %>%
+  group_by(over_65_.) %>%
+  na.omit(over_65_.) %>%
+  ggplot(aes(over_65_., confirmed_cases), confirmed_cases) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Confirmed Cases per Intervals"
+  )
+
+
+
 
 # mean cumulative cases and under_10:
 
