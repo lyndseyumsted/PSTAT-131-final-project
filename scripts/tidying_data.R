@@ -102,10 +102,10 @@ pandemic_new_cum <- pandemic_weekly_og %>%
 # that I want
 library(dplyr)
 pandemic_cum_sub <- pandemic_new_cum %>%
-  select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", "Pop2010", 
+  select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", 
          "OHU2010", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
          "Traffic", "Groundwater.Threats", "Haz..Waste", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
-         "Education", "Linguistic.Isolation", "Poverty", "Unemployment", "Pop..Char.", "under_10_.", "Age11_to_64_.", "over_65_.", 
+         "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
          "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.", "retail_change", "grocery_change", 
          "transit_change")
 
@@ -191,10 +191,10 @@ pandemic_new_weekly <- pandemic_weekly_og %>%
 # that I want
 library(dplyr)
 pandemic_weekly_sub <- pandemic_new_weekly %>%
-  select("ID_co", "new_cases", "population", "week", "Mean_Tmax", "Urban", "Pop2010", 
+  select("ID_co", "new_cases", "population", "week", "Mean_Tmax", "Urban", 
          "OHU2010", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
          "Traffic", "Groundwater.Threats", "Haz..Waste", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
-         "Education", "Linguistic.Isolation", "Poverty", "Unemployment", "Pop..Char.", "under_10_.", "Age11_to_64_.", "over_65_.", 
+         "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
          "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.", "retail_change", "grocery_change", 
          "transit_change")
 
@@ -230,26 +230,6 @@ summary(pandemic_weekly$new_cases)
 hist(pandemic_weekly$new_cases, breaks = 200)
 
 
-# final data sets:
-pandemic_cum
-pandemic_weekly
-
-
-
-
-pandemic_cum %>% 
-  dplyr::select("confirmed_cases", "Pop..Char.") %>%
-  mutate(Pop..Char. = cut(Pop..Char., breaks = 
-                            seq(min(Pop..Char.), max(Pop..Char.), by = 3), 
-                          include.lowest = TRUE)) %>%
-  group_by(Pop..Char.) %>%
-  na.omit(Pop..Char.) %>%
-  ggplot(aes(Pop..Char., confirmed_cases), confirmed_cases) +
-  geom_boxplot(varwidth = TRUE) + 
-  coord_flip() +
-  labs(
-    title = "Distribution of Confirmed Cases per 3 % Pop Char Intervals"
-  )
 
 
 pandemic_cum %>% 
@@ -267,16 +247,138 @@ pandemic_cum %>%
   )
 
 pandemic_cum %>% 
-  dplyr::select("confirmed_cases", "Poverty") %>%
-  mutate(Poverty = cut(Poverty, breaks = 
-                            seq(min(Poverty), max(Poverty), by = 3), 
+  dplyr::select("confirmed_cases", "PovertyRate") %>%
+  mutate(PovertyRate = cut(PovertyRate, breaks = 
+                            seq(min(PovertyRate), max(PovertyRate), by = 3), 
                           include.lowest = TRUE)) %>%
-  group_by(Poverty) %>%
-  na.omit(Poverty) %>%
-  ggplot(aes(Poverty, confirmed_cases), confirmed_cases) +
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  ggplot(aes(PovertyRate, confirmed_cases), confirmed_cases) +
   geom_boxplot(varwidth = TRUE) + 
   coord_flip() +
   labs(
     title = "Distribution of Confirmed Cases per 3 % Pop Char Intervals"
   )
 
+
+# How to remove unnesseary messages in knitted file:
+# at top of code chunk say '''{r. message = FALSE}
+
+# How to save and load models:
+# 1. make r markdown file where code is meant to be loaded
+# 2. make code chunks of all code needed that takes long to 
+# load in r script and run once
+# 3. save(object_name, file = "object_name_results.rda")
+# 4. In R markdown: put '''{r, eval = FALSE} and then
+# load(file = "object_name_results.rda")
+
+# or write_rds(object, "file") and then
+# read_rds("file")
+
+
+
+# Creating a proportions variable for possible categorical
+# problem
+
+#cumulative
+
+pandemic_cum$prop <- 
+  pandemic_cum$confirmed_cases/pandemic_cum$population
+
+# getting rid of proportions greater than 1 because that
+# has to be a mistake and shouldn't have any 0s but getting
+# rid of them anyways
+pandemic_cum <- pandemic_cum %>%
+  filter(prop < 1) %>%
+  filter(prop > 0)
+
+hist(pandemic_cum$prop, breaks = 50)
+summary(pandemic_cum$prop) # median proportion of city with covid 
+# covid by the end of the year is 0.0311 or about 3 %
+# mean proportion of covid by the end of the year is 0.392
+# or about 4 % (pulled upward by high outliers)
+
+boxplot(pandemic_cum$prop, horizontal = TRUE)
+
+
+# log transformation
+pandemic_cum$proplog <-log(pandemic_cum$prop)
+
+hist(pandemic_cum$proplog, breaks = 50)
+boxplot(pandemic_cum$proplog, horizontal = TRUE)
+summary(pandemic_cum$proplog)
+
+
+# creating low, moderate, and high categories based on
+# log-transformed data cut by the 1st quartile, IQR,
+# and 4th quartile
+
+pandemic_cum$proplog <- 
+  cut(pandemic_cum$proplog, breaks = 
+        c(-12, -4.0425 , -2.9329, 10^3), 
+      labels = c("low", "moderate", "high")) # 25% 75% 100%
+
+# checking
+round(prop.table(table(pandemic_cum$proplog)), 2)
+
+
+# weekly
+pandemic_weekly$prop <- 
+  pandemic_weekly$new_cases/pandemic_weekly$population
+
+# getting rid of proportions greater than 1 because that
+# has to be a mistake and shouldn't have any 0s but getting
+# rid of them anyways
+pandemic_weekly <- pandemic_weekly %>%
+  filter(prop < 1) %>%
+  filter(prop > 0)
+
+hist(pandemic_weekly$prop, breaks = 1000)
+summary(pandemic_weekly$prop) # median proportion of city
+# with covid each week is 0.0001022 or .01%
+# mean proportion of covid each week is 0.0002432
+# or about .02 % (pulled upward by high outliers)
+
+boxplot(pandemic_weekly$prop, horizontal = TRUE)
+
+
+# log transformation
+pandemic_weekly$proplog <-log(pandemic_weekly$prop)
+
+hist(pandemic_weekly$proplog, breaks = 50)
+boxplot(pandemic_weekly$proplog, horizontal = TRUE)
+summary(pandemic_weekly$proplog)
+
+
+# creating low, moderate, and high categories based on
+# log-transformed data cut by the 1st quartile, IQR,
+# and 4th quartile
+
+pandemic_weekly$proplog <- 
+  cut(pandemic_weekly$proplog, breaks = 
+        c(-14, -9.992 , -8.402, 10^3), 
+      labels = c("low", "moderate", "high")) # 25% 75% 100%
+
+# checking
+round(prop.table(table(pandemic_weekly$proplog)), 2)
+
+
+
+# final data sets:
+save(pandemic_cum, file = "models/pandemic_cum.rda")
+save(pandemic_weekly, file = "models/pandemic_weekly.rda")
+
+
+
+pandemic_cum %>% 
+  select(is.numeric) %>% 
+  cor() %>% 
+  corrplot(diag = FALSE, 
+           method = 'square')
+
+
+pandemic_weekly %>% 
+  select(is.numeric) %>% 
+  cor() %>% 
+  corrplot(diag = FALSE, 
+           method = 'square')
