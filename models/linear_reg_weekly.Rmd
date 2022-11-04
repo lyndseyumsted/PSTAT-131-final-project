@@ -23,6 +23,7 @@ tidymodels_prefer()
 
 Splitting into training and testing
 ```{r}
+load("pandemic_weekly.rda")
 set.seed(24)
 
 pandemic_weekly_split <- initial_split(pandemic_weekly, prop = 0.80, strata = new_cases)

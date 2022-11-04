@@ -1,0 +1,218 @@
+---
+title: "LM, LDA, and QDA classification on cumulative proportion data"
+author: "Lyndsey Umsted"
+date: "2022-11-04"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Here I will be fitting a linear regression model to the Cumulative Log Transformed Proportion Data
+
+Loading necessary libraries
+```{r}
+library(tidymodels)
+library(ISLR) # For the Smarket data set
+library(ISLR2) # For the Bikeshare data set
+library(discrim)
+library(poissonreg)
+library(corrr)
+library(klaR) # for naive bayes
+tidymodels_prefer()
+```
+
+Splitting into training and testing
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = proplog)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+
+Creating Recipe:
+```{r}
+pandemic_cum_rec <- recipe(proplog ~ ., data = pandemic_cum_train) %>%
+  step_dummy(all_nominal_predictors()) 
+```
+
+
+Logistic Regression Model:
+```{r}
+log_reg <- logistic_reg() %>% 
+  set_engine("glm") %>% 
+  set_mode("classification")
+```
+
+Workflow:
+```{r}
+lm_wflow_cum <- workflow() %>% 
+  add_model(log_reg) %>% 
+  add_recipe(pandemic_cum_rec)
+```
+
+Fit logistic regression model to training data:
+```{r}
+log_reg_fit_cum <- fit(lm_wflow_cum, pandemic_cum_train)
+```
+
+We can view the model results:
+
+```{r}
+log_reg_fit_cum %>% 
+  # This returns the parsnip object:
+  extract_fit_parsnip() %>% 
+  # Now tidy the linear model object:
+  tidy()
+```
+
+Generating preicted values for each observation of the training set:
+```{r}
+predict(log_reg_fit_cum, new_data = pandemic_cum_train, type = "prob")
+```
+
+
+```{r}
+augment(log_reg_fit_cum, new_data = pandemic_cum_train) %>%
+  conf_mat(truth = proplog, estimate = .pred_class)
+```
+
+```{r}
+log_reg_acc <- augment(log_reg_fit_cum, new_data = pandemic_cum_train) %>%
+  accuracy(truth = proplog, estimate = .pred_class)
+log_reg_acc
+```
+
+
+
+LDA Model:
+
+```{r}
+lda_mod <- discrim_linear() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS")
+
+lda_wkflow <- workflow() %>% 
+  add_model(lda_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+lda_fit_cum <- fit(lda_wkflow, pandemic_cum_train)
+```
+
+### Assessing Performance
+
+This can be done almost exactly the same way:
+
+```{r}
+predict(lda_fit_cum, new_data = pandemic_cum_train, type = "prob")
+```
+Confusion Matrix
+
+```{r}
+augment(lda_fit_cum, new_data = pandemic_cum_train) %>%
+  conf_mat(truth = proplog, estimate = .pred_class) 
+```
+
+```{r}
+lda_acc <- augment(lda_fit_cum, new_data = pandemic_cum_train) %>%
+  accuracy(truth = proplog, estimate = .pred_class)
+lda_acc
+```
+
+
+QDA
+
+```{r, eval=FALSEs}
+qda_mod <- discrim_quad() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS")
+
+qda_wkflow <- workflow() %>% 
+  add_model(qda_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+qda_fit <- fit(qda_wkflow, pandemic_cum_train)
+```
+
+### Assessing Performance
+
+And again:
+
+```{r}
+predict(qda_fit, new_data = pandemic_cum_train, type = "prob")
+```
+
+We can view a confidence matrix and calculate accuracy on the **training data**:
+
+```{r}
+augment(qda_fit, new_data = pandemic_cum_train) %>%
+  conf_mat(truth = proplog, estimate = .pred_class) 
+```
+
+```{r}
+qda_acc <- augment(qda_fit, new_data = pandemic_cum_train) %>%
+  accuracy(truth = proplog, estimate = .pred_class)
+qda_acc
+```
+
+
+Naive Bayes:
+
+
+```{r}
+nb_mod <- naive_Bayes() %>% 
+  set_mode("classification") %>% 
+  set_engine("klaR") %>% 
+  set_args(usekernel = FALSE) 
+
+nb_wkflow <- workflow() %>% 
+  add_model(nb_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+nb_fit <- fit(nb_wkflow, pandemic_cum_train)
+```
+
+### Assessing Performance
+
+And again:
+
+```{r, message =FALSE}
+predict(nb_fit, new_data = pandemic_cum_train, type = "prob")
+```
+
+We can view a confidence matrix and calculate accuracy on the **training data**:
+
+```{r}
+augment(nb_fit, new_data = pandemic_cum_train) %>%
+  conf_mat(truth = proplog, estimate = .pred_class) 
+```
+
+```{r}
+nb_acc <- augment(nb_fit, new_data = pandemic_cum_train) %>%
+  accuracy(truth = proplog, estimate = .pred_class)
+nb_acc
+```
+
+## Comparing Model Performance
+
+Now we can make a table of the accuracy rates from these four models to choose the model that produced the highest accuracy on the training data:
+
+```{r}
+accuracies <- c(log_reg_acc$.estimate, lda_acc$.estimate, 
+                nb_acc$.estimate, qda_acc$.estimate)
+models <- c("Logistic Regression", "LDA", "Naive Bayes", "QDA")
+results <- tibble(accuracies = accuracies, models = models)
+results %>% 
+  arrange(-accuracies)
+```
+

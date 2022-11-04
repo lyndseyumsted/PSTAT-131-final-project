@@ -3,6 +3,7 @@ title: "Linear Regression Model on Cumulative Data"
 author: "Lyndsey Umsted"
 date: "2022-10-24"
 output: pdf_document
+toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -23,6 +24,8 @@ tidymodels_prefer()
 
 Splitting into training and testing
 ```{r}
+load("pandemic_cum.rda")
+getwd()
 set.seed(24)
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = confirmed_cases)

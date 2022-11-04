@@ -1,0 +1,85 @@
+---
+title: "KNN model on weekly cases"
+author: "Lyndsey Umsted"
+date: "2022-11-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Loading necessary libraries
+```{r}
+#install.packages("kknn")
+library(ggplot2)
+library(tidyverse)
+library(tidymodels)
+library(corrplot)
+library(ggthemes)
+tidymodels_prefer()
+library(kknn)
+```
+
+Splitting into training and testing
+```{r}
+set.seed(24)
+
+pandemic_weekly_split <- initial_split(pandemic_weekly, prop = 0.80, strata = new_cases)
+
+pandemic_weekly_train <- training(pandemic_weekly_split)
+pandemic_weekly_test <- testing(pandemic_weekly_split)
+```
+
+Creating Recipe:
+```{r}
+pandemic_weekly_rec <- recipe(new_cases ~ ., data = pandemic_weekly_train) %>%
+  step_dummy(all_nominal_predictors())
+```
+
+KNN Model:
+```{r}
+knn_model <- nearest_neighbor(
+  mode = "regression",
+  engine = "kknn", 
+  neighbors = 5,
+  weight_func = "rectangular", 
+  dist_power = NULL
+)
+```
+
+Workflow:
+```{r}
+knn_wflow_weekly <- workflow() %>% 
+  add_model(knn_model) %>% 
+  add_recipe(pandemic_weekly_rec)
+```
+
+Fit KNN model to training data:
+```{r}
+knn_fit_weekly <- fit(knn_wflow_weekly, pandemic_weekly_train)
+```
+
+Generating preicted values for each observation of the training set:
+```{r}
+pandemic_weekly_knn_pred <- predict(knn_fit_weekly, new_data = pandemic_weekly_train %>% select(-new_cases))
+pandemic_weekly_knn_pred %>% 
+  head()
+```
+
+Attaching a column of the actual observed new cases:
+```{r}
+pandemic_weekly_knn_pred <- bind_cols(pandemic_weekly_knn_pred, pandemic_weekly_train %>% select(new_cases))
+pandemic_weekly_train_res %>% 
+  head()
+```
+
+Looking at RMSE on the training data:
+```{r}
+rmse(pandemic_weekly_knn_pred, truth = new_cases, estimate = .pred)
+```
+View metric set:
+```{r}
+pandemic_weekly_metrics <- metric_set(rmse, rsq, mae)
+pandemic_weekly_metrics(pandemic_weekly_knn_pred, truth = new_cases, estimate = .pred)
+```

@@ -1,0 +1,30 @@
+---
+title: "Building a Predictive Model on Covid-19 Cases"
+subtitle: "Using Machine Learning Models to Predict Covid-19 Cases in Californian Cities"
+author: "Lyndsey Umsted"
+format: html
+editor: visual
+---
+
+## Introduction
+
+This project is intended to build and deploy a machine learning model
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
