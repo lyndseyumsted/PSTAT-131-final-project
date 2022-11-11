@@ -1,0 +1,117 @@
+---
+title: "Random Forest Model for Covid-19 Risk"
+author: "Lyndsey Umsted"
+date: "2022-11-07"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Loading necessary libraries
+```{r}
+library(tidymodels)
+library(ISLR) # For the Smarket data set
+library(ISLR2) # For the Bikeshare data set
+library(discrim)
+library(poissonreg)
+library(corrr)
+library(klaR) # for naive bayes
+tidymodels_prefer()
+library(randomForest)
+```
+
+Splitting into training and testing
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+
+Creating Folds
+```{r}
+folds <- vfold_cv(pandemic_cum_train, v = 10, repeats = 2)
+```
+
+Processing the Data
+
+creating the recipe and assigning the steps for processing the data
+```{r}
+rec <- recipe(risk ~., 
+  data = pandemic_cum_train) %>%   # Formula
+  step_dummy(all_nominal())        # normalize numeric data to have a standard deviation of one.
+  # %>%step_downsample(Target)                    # all classes should have the same frequency as the minority 
+                                                     # class(not needed in our case)
+```
+
+Training the recipe data
+```{r}
+trained_rec <-  prep(rec, training = pandemic_cum_train, retain = TRUE)
+# create the train and test set 
+train_data <- as.data.frame(juice(trained_rec))
+test_data  <- as.data.frame( bake(trained_rec, new_data = pandemic_cum_test))
+```
+
+The Model
+
+We will use the {parsnip} function rand_forest() to create a random forest model and add the r-package “ranger” as the computational engine.
+```{r}
+# Build the model (generate the specifications of the model) 
+model_spec_default <- rand_forest(mode = "classification")%>%set_engine("ranger", verbose = TRUE)
+```
+
+Fit the model on the training data (train_data prepared above)
+```{r}
+library(tictoc)
+tic()
+# fit the model
+model_fit_default <- model_spec_default %>%
+  fit(risk ~ .,pandemic_cum_train)
+toc()
+## 27.85 sec elapsed
+
+# show the configuration of the fitted model
+model_fit_default
+```
+
+Predict on the testing data (test_data) and extract the model performance. How does this model perform against the holdout data (test_data, not seen before)?
+```{r}
+multi_metric <- metric_set(accuracy, sensitivity, specificity)
+
+augment(model_fit_default, new_data = pandemic_cum_test) %>%
+  multi_metric(truth = risk, estimate = .pred_class)
+```
+
+```{r}
+augment(model_fit_default, new_data = pandemic_cum_test) %>%
+  conf_mat(truth = risk, estimate = .pred_class) 
+```
+
+ROC Curve:
+```{r}
+roc <- augment(model_fit_default, pandemic_cum_test)
+
+roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+```
+
+
+AUC:
+```{r}
+roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+```
+

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.0.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lyndsey Umsted">
+
+<title>Building a Predictive Model on Covid-19 Cases</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="final_report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="final_report_files/libs/quarto-html/quarto.js"></script>
+<script src="final_report_files/libs/quarto-html/popper.min.js"></script>
+<script src="final_report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="final_report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="final_report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="final_report_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="final_report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="final_report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="final_report_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Building a Predictive Model on Covid-19 Cases</h1>
+<p class="subtitle lead">Using Machine Learning Models to Predict Covid-19 Outbreak Risk in Californian Cities</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Lyndsey Umsted </p>
+          </div>
+  </div>
+    
+    
+  </div>
+  
+
+</header>
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 30 different predictors including socioeconomic factors, abiotic factors such as temperature, and pollution indicators. This project originates from a personal interest in public health and previous studying done on disease dynamics.</p>
+<section id="packages-and-libraries" class="level4">
+<h4 class="anchored" data-anchor-id="packages-and-libraries">Packages and Libraries:</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(corrplot)  <span class="co"># for the correlation plot</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>corrplot 0.92 loaded</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(discrim)  <span class="co"># for linear discriminant analysis</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: parsnip</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(corrr)   <span class="co"># for calculating correlation</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)   <span class="co"># to help with the knitting process</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)    <span class="co"># to assist with the markdown processes</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)   <span class="co"># using tidyverse and tidymodels for this project mostly</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching packages
+───────────────────────────────────────
+tidyverse 1.3.2 ──</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ ggplot2 3.3.6      ✔ purrr   0.3.4 
+✔ tibble  3.1.8      ✔ dplyr   1.0.10
+✔ tidyr   1.2.1      ✔ stringr 1.4.1 
+✔ readr   2.1.3      ✔ forcats 0.5.2 
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+✖ dplyr::select() masks MASS::select()</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching packages ────────────────────────────────────── tidymodels 1.0.0 ──
+✔ broom        1.0.1     ✔ rsample      1.1.0
+✔ dials        1.0.0     ✔ tune         1.0.1
+✔ infer        1.0.3     ✔ workflows    1.1.0
+✔ modeldata    1.0.1     ✔ workflowsets 1.0.0
+✔ recipes      1.0.1     ✔ yardstick    1.1.0
+── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+✖ scales::discard() masks purrr::discard()
+✖ dplyr::filter()   masks stats::filter()
+✖ recipes::fixed()  masks stringr::fixed()
+✖ dplyr::lag()      masks stats::lag()
+✖ dplyr::select()   masks MASS::select()
+✖ yardstick::spec() masks readr::spec()
+✖ recipes::step()   masks stats::step()
+• Use suppressPackageStartupMessages() to eliminate package startup messages</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)   <span class="co"># for most of our visualizations</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tidymodels_prefer</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="what-is-covid-19" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-covid-19">What is Covid-19?</h2>
+<p>Coronavirus disease (COVID-19) is an infectious disease caused by the SARS-CoV-2 virus. Most people infected with the virus will experience mild to moderate respiratory illness and recover without requiring special treatment. Some people become seriously ill and require medical attention. Older people and those with underlying medical conditions are more likely to develop serious illness and hospitalizaton. COVID-19 can affect people of all ages, including death. The virus can spread from an infected person’s mouth or nose in small liquid particles when they cough, sneeze, speak, sing or breathe. These particles range from larger respiratory droplets to smaller aerosols.</p>
+<p>https://www.who.int/health-topics/coronavirus#tab=tab_1</p>
+</section>
+<section id="my-data" class="level2">
+<h2 class="anchored" data-anchor-id="my-data">My Data</h2>
+<p>The data set used for this research project was provided to me by a faculty member, Dr.&nbsp;Andrew MacDonald, who I had the opportunity to work under this summer during an undergraduate research internship. Dr.&nbsp;MacDonald merged data from the <em>LA Times</em> on socioeconomic factors and food access for different Californian zip codes with data reflecting Covid-19 case counts, weather, and pollution levels from the same zip codes during the Covid-19 pandemic in 2020. The original data set contained 273 columns of data.</p>
+</section>
+<section id="research-questions" class="level2">
+<h2 class="anchored" data-anchor-id="research-questions">Research Questions</h2>
+<ol type="1">
+<li>What factors of a population have underlying effects on the number of Covid-19 Cases?</li>
+<li>What kinds of populations are at higher risk for Covid-19 outbreaks?</li>
+<li>Is there evidence of socioeconomic correlation with higher Covid-19 rates?</li>
+<li>Is there evidence of pollution level effects on Covid-19 rates?</li>
+</ol>
+</section>
+</section>
+<section id="exploratory-data-analysis" class="level1">
+<h1>Exploratory Data Analysis</h1>
+<p>The original data set used for this project contained 55,620 observations of 268 variables. In the beginning stages of this project, this data set was tidied, cleaned, and reduced to fewer variables. In the following sections we’ll explore the distribution of our response variable “outbreak risk” and look at visualizations of key predictor distributions and relationships between predictors and case counts of Covid-19.</p>
+<section id="loading-and-exploring-raw-data" class="level2">
+<h2 class="anchored" data-anchor-id="loading-and-exploring-raw-data">Loading and Exploring Raw Data</h2>
+<p>The pandemic data set is stored in a .csv format and can be read in from the directory:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="st">"C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project"</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pandemic_weekly_og <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/pandemic_weekly.csv"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># changing naming to shorten</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>pandemic_weekly_og<span class="sc">$</span>retail_change <span class="ot">&lt;-</span> pandemic_weekly_og<span class="sc">$</span>retail_and_recreation_percent_change_from_baseline</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>pandemic_weekly_og<span class="sc">$</span>grocery_change <span class="ot">&lt;-</span> pandemic_weekly_og<span class="sc">$</span>grocery_and_pharmacy_percent_change_from_baseline</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>pandemic_weekly_og<span class="sc">$</span>transit_change <span class="ot">&lt;-</span> pandemic_weekly_og<span class="sc">$</span>transit_stations_percent_change_from_baseline</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>pandemic_weekly_og<span class="sc">$</span>confirmed_cases <span class="ot">&lt;-</span> pandemic_weekly_og<span class="sc">$</span>confirmed_cases_fill</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>pandemic_weekly_og<span class="sc">$</span>new_cases <span class="ot">&lt;-</span> pandemic_weekly_og<span class="sc">$</span>new_cases_fill</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>pandemic_weekly_og <span class="sc">%&gt;%</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">str</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>'data.frame':   55620 obs. of  273 variables:
+ $ ID_co                                                   : chr  "90802_37" "90802_37" "90802_37" "90802_37" ...
+ $ week                                                    : int  7 8 9 10 11 12 13 14 15 16 ...
+ $ County_FIPS                                             : int  6037 6037 6037 6037 6037 6037 6037 6037 6037 6037 ...
+ $ population                                              : int  39453 39453 39453 39453 39453 39453 39453 39453 39453 39453 ...
+ $ confirmed_cases_fill                                    : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ confirmed_casesInterp                                   : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_cases_fill                                          : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_casesInterp                                         : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_cases_fill_noNeg                                    : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_casesInterp_noNeg                                   : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ confirmed_cases_fill_mean                               : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ confirmed_casesInterp_mean                              : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_cases_fill_mean                                     : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_casesInterp_mean                                    : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_cases_fill_mean_noNeg                               : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ new_casesInterp_mean_noNeg                              : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ ID_rowN                                                 : int  431 431 431 431 431 431 431 431 431 431 ...
+ $ Mean_Tmax                                               : num  18.4 19.6 23.8 20.3 18.6 ...
+ $ Mean_srad                                               : num  340 287 367 331 221 ...
+ $ Mean_sph                                                : num  0.0066 0.00706 0.00655 0.00717 0.00748 ...
+ $ pm2.5                                                   : num  2.38e-08 2.07e-08 2.37e-08 8.47e-09 5.28e-09 ...
+ $ pm2.5_percentile                                        : num  0.785 0.737 0.754 0.353 0.173 ...
+ $ pm2.5_scale                                             : num  0.1106 0.0336 0.1075 -0.2666 -0.3447 ...
+ $ Tmax_percentile                                         : num  0.251 0.309 0.506 0.343 0.262 ...
+ $ Tmax_scale                                              : num  -0.7443 -0.5794 -0.0247 -0.4868 -0.7129 ...
+ $ Srad_percentile                                         : num  0.402 0.276 0.482 0.386 0.14 ...
+ $ Srad_scale                                              : num  -0.25016 -0.72331 -0.00755 -0.33424 -1.31465 ...
+ $ Sph_percentile                                          : num  0.525 0.593 0.51 0.606 0.65 ...
+ $ Sph_scale                                               : num  -0.0231 0.1578 -0.0411 0.2023 0.3236 ...
+ $ Urban                                                   : num  0.889 0.889 0.889 0.889 0.889 ...
+ $ Pop2010                                                 : num  3409 3409 3409 3409 3409 ...
+ $ OHU2010                                                 : num  1545 1545 1545 1545 1545 ...
+ $ GroupQuartersFlag                                       : num  0.111 0.111 0.111 0.111 0.111 ...
+ $ NUMGQTRS                                                : num  134 134 134 134 134 ...
+ $ PCTGQTRS                                                : num  10.8 10.8 10.8 10.8 10.8 ...
+ $ LILATracts_1And10                                       : num  0.0556 0.0556 0.0556 0.0556 0.0556 ...
+ $ LILATracts_halfAnd10                                    : num  0.278 0.278 0.278 0.278 0.278 ...
+ $ LILATracts_1And20                                       : num  0.0556 0.0556 0.0556 0.0556 0.0556 ...
+ $ LILATracts_Vehicle                                      : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ HUNVFlag                                                : num  0.0556 0.0556 0.0556 0.0556 0.0556 ...
+ $ LowIncomeTracts                                         : num  0.611 0.611 0.611 0.611 0.611 ...
+ $ PovertyRate                                             : num  22.5 22.5 22.5 22.5 22.5 ...
+ $ MedianFamilyIncome                                      : num  47782 47782 47782 47782 47782 ...
+ $ LA1and10                                                : num  0.111 0.111 0.111 0.111 0.111 ...
+ $ LAhalfand10                                             : num  0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 ...
+ $ LA1and20                                                : num  0.111 0.111 0.111 0.111 0.111 ...
+ $ LATracts_half                                           : num  0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 ...
+ $ LATracts1                                               : num  0.111 0.111 0.111 0.111 0.111 ...
+ $ LATracts10                                              : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ LATracts20                                              : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ LATractsVehicle_20                                      : num  0.0556 0.0556 0.0556 0.0556 0.0556 ...
+ $ LAPOP1_10                                               : num  8.78 8.78 8.78 8.78 8.78 ...
+ $ LAPOP05_10                                              : num  666 666 666 666 666 ...
+ $ LAPOP1_20                                               : num  8.78 8.78 8.78 8.78 8.78 ...
+ $ LALOWI1_10                                              : num  2.17 2.17 2.17 2.17 2.17 ...
+ $ LALOWI05_10                                             : num  252 252 252 252 252 ...
+ $ LALOWI1_20                                              : num  2.17 2.17 2.17 2.17 2.17 ...
+ $ lapophalf                                               : num  736 736 736 736 736 ...
+ $ lapophalfshare                                          : num  33 33 33 33 33 ...
+ $ lalowihalf                                              : num  252 252 252 252 252 ...
+ $ lalowihalfshare                                         : num  12.1 12.1 12.1 12.1 12.1 ...
+ $ lakidshalf                                              : num  86.1 86.1 86.1 86.1 86.1 ...
+ $ lakidshalfshare                                         : num  2.58 2.58 2.58 2.58 2.58 ...
+ $ laseniorshalf                                           : num  68.2 68.2 68.2 68.2 68.2 ...
+ $ laseniorshalfshare                                      : num  4.33 4.33 4.33 4.33 4.33 ...
+ $ lawhitehalf                                             : num  438 438 438 438 438 ...
+ $ lawhitehalfshare                                        : num  20.9 20.9 20.9 20.9 20.9 ...
+ $ lablackhalf                                             : num  94.9 94.9 94.9 94.9 94.9 ...
+ $ lablackhalfshare                                        : num  3.73 3.73 3.73 3.73 3.73 ...
+ $ laasianhalf                                             : num  50.3 50.3 50.3 50.3 50.3 ...
+ $ laasianhalfshare                                        : num  2.6 2.6 2.6 2.6 2.6 ...
+ $ lanhopihalf                                             : num  3.28 3.28 3.28 3.28 3.28 ...
+ $ lanhopihalfshare                                        : num  0.234 0.234 0.234 0.234 0.234 ...
+ $ laaianhalf                                              : num  7.22 7.22 7.22 7.22 7.22 ...
+ $ laaianhalfshare                                         : num  0.273 0.273 0.273 0.273 0.273 ...
+ $ laomultirhalf                                           : num  143 143 143 143 143 ...
+ $ laomultirhalfshare                                      : num  5.32 5.32 5.32 5.32 5.32 ...
+ $ lahisphalf                                              : num  225 225 225 225 225 ...
+ $ lahisphalfshare                                         : num  8.52 8.52 8.52 8.52 8.52 ...
+ $ lahunvhalf                                              : num  34.1 34.1 34.1 34.1 34.1 ...
+ $ lahunvhalfshare                                         : num  1.85 1.85 1.85 1.85 1.85 ...
+ $ lasnaphalf                                              : num  25.7 25.7 25.7 25.7 25.7 ...
+ $ lasnaphalfshare                                         : num  1.64 1.64 1.64 1.64 1.64 ...
+ $ lapop1                                                  : num  72.2 72.2 72.2 72.2 72.2 ...
+ $ lapop1share                                             : num  11.4 11.4 11.4 11.4 11.4 ...
+ $ lalowi1                                                 : num  2.17 2.17 2.17 2.17 2.17 ...
+ $ lalowi1share                                            : num  3.59 3.59 3.59 3.59 3.59 ...
+ $ lakids1                                                 : num  0.778 0.778 0.778 0.778 0.778 ...
+ $ lakids1share                                            : num  0.159 0.159 0.159 0.159 0.159 ...
+ $ laseniors1                                              : num  6.94 6.94 6.94 6.94 6.94 ...
+ $ laseniors1share                                         : num  1.52 1.52 1.52 1.52 1.52 ...
+ $ lawhite1                                                : num  41.3 41.3 41.3 41.3 41.3 ...
+ $ lawhite1share                                           : num  7.26 7.26 7.26 7.26 7.26 ...
+ $ lablack1                                                : num  12.8 12.8 12.8 12.8 12.8 ...
+ $ lablack1share                                           : num  1.31 1.31 1.31 1.31 1.31 ...
+ $ laasian1                                                : num  3.56 3.56 3.56 3.56 3.56 ...
+ $ laasian1share                                           : num  1.01 1.01 1.01 1.01 1.01 ...
+ $ lanhopi1                                                : num  1.17 1.17 1.17 1.17 1.17 ...
+ $ lanhopi1share                                           : num  0.174 0.174 0.174 0.174 0.174 ...
+  [list output truncated]</code></pre>
+</div>
+</div>
+<p>Dimensions of the data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(pandemic_weekly_og)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 55620   273</code></pre>
+</div>
+</div>
+<p>This is a very large data set with 273 variables, all of which are not necessary. The variable labeled “confirmed_cases” will be the focus of our predictions. This column contains the cumulative number of positive Covid-19 cases per week in each zip-code during the 2020 year. The data set also contains a variable labeled “new_cases” which contains the new number of positive Covid-19 cases per week during the 2020 year. We can explore these two variables:</p>
+<section id="cumulative-cases-throughout-2020" class="level4">
+<h4 class="anchored" data-anchor-id="cumulative-cases-throughout-2020">Cumulative Cases throughout 2020:</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"visuals/gg_cum.rda"</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"visuals/total_cases_cum.rda"</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(total_cases_cum<span class="sc">$</span>cumulative_cases, total_cases_cum<span class="sc">$</span>week, </span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        <span class="at">names.arg =</span> <span class="fu">c</span>(<span class="dv">7</span><span class="sc">:</span><span class="dv">51</span>), </span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="at">ylab =</span> <span class="st">"cumulative cases"</span>, </span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="at">xlab =</span> <span class="st">"week"</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">main =</span> <span class="st">"Cumulative Number of Covid-19 Cases per Week in 2020"</span>,</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> <span class="st">"pink"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="final_report_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>gg_cum</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="final_report_files/figure-html/unnamed-chunk-4-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="new-cases-each-week-of-2020" class="level4">
+<h4 class="anchored" data-anchor-id="new-cases-each-week-of-2020">New Cases each week of 2020:</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"visuals/gg_new.rda"</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"visuals/total_cases.rda"</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(total_cases<span class="sc">$</span>new_cases, total_cases<span class="sc">$</span>week, </span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>        <span class="at">names.arg =</span> <span class="fu">c</span>(<span class="dv">7</span><span class="sc">:</span><span class="dv">51</span>), </span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>        <span class="at">ylab =</span> <span class="st">"new cases"</span>, </span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>        <span class="at">xlab =</span> <span class="st">"week"</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">main =</span> <span class="st">"New Number of Covid-19 Cases per Week in 2020"</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> <span class="st">"pink"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="final_report_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>gg_new</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="final_report_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

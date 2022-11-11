@@ -293,10 +293,18 @@ pandemic_cum <- pandemic_cum %>%
   filter(prop > 0)
 
 hist(pandemic_cum$prop, breaks = 50)
+
+# based on histogram, I think the best split for high is 7%, and then
+# the next split between low and moderate I would choose to be the 
+# median
+
 summary(pandemic_cum$prop) # median proportion of city with covid 
 # covid by the end of the year is 0.0311 or about 3 %
-# mean proportion of covid by the end of the year is 0.392
+# mean proportion of covid by the end of the year is 0.0392
 # or about 4 % (pulled upward by high outliers)
+
+
+# splits at 0.03 and 0.07
 
 boxplot(pandemic_cum$prop, horizontal = TRUE)
 
@@ -313,13 +321,13 @@ summary(pandemic_cum$proplog)
 # log-transformed data cut by the 1st quartile, IQR,
 # and 4th quartile
 
-pandemic_cum$proplog <- 
+pandemic_cum$risk <- 
   cut(pandemic_cum$proplog, breaks = 
-        c(-12, -4.0425 , -2.9329, 10^3), 
-      labels = c("low", "moderate", "high")) # 25% 75% 100%
+        c(-12, log(0.03) , log(0.07), 0), 
+      labels = c("low", "moderate", "high")) # 0.03 and 0.07
 
 # checking
-round(prop.table(table(pandemic_cum$proplog)), 2)
+round(prop.table(table(pandemic_cum$risk)), 2)
 
 
 # weekly
@@ -333,14 +341,20 @@ pandemic_weekly <- pandemic_weekly %>%
   filter(prop < 1) %>%
   filter(prop > 0)
 
-hist(pandemic_weekly$prop, breaks = 1000)
+boxplot(pandemic_weekly$prop, horizontal = TRUE)
+
+hist(pandemic_weekly$prop[pandemic_weekly$prop < 0.002], breaks = 100)
 summary(pandemic_weekly$prop) # median proportion of city
 # with covid each week is 0.0001022 or .01%
 # mean proportion of covid each week is 0.0002432
 # or about .02 % (pulled upward by high outliers)
 
-boxplot(pandemic_weekly$prop, horizontal = TRUE)
+# based on the histogram of prop below 0.002 or .2%,
+# I would mark a distinct split between low, moderate, 
+# and high around 0.00015 and 0.0003
 
+
+summary(pandemic_cum$prop)
 
 # log transformation
 pandemic_weekly$proplog <-log(pandemic_weekly$prop)
@@ -354,14 +368,13 @@ summary(pandemic_weekly$proplog)
 # log-transformed data cut by the 1st quartile, IQR,
 # and 4th quartile
 
-pandemic_weekly$proplog <- 
+pandemic_weekly$risk <- 
   cut(pandemic_weekly$proplog, breaks = 
-        c(-14, -9.992 , -8.402, 10^3), 
-      labels = c("low", "moderate", "high")) # 25% 75% 100%
+        c(-14, log(0.00015) , log(0.0003), 0), 
+      labels = c("low", "moderate", "high")) # 0.00015 and 0.0003
 
 # checking
-round(prop.table(table(pandemic_weekly$proplog)), 2)
-
+round(prop.table(table(pandemic_weekly$risk)), 2)
 
 
 # final data sets:
