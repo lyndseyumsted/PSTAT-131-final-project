@@ -22,7 +22,10 @@ ggplot(mean_cases_cum, aes(x = week, y = name)) +
   geom_point() +
   geom_line()
 
-barplot(mean_cases_cum$name, mean_cases_cum$week, names.arg = c(7:51))
+barplot(mean_cases_cum$name, mean_cases_cum$week, names.arg = c(7:51),
+        ylab = "cumulative cases", xlab = "week",
+        main = "Cumulative Number of Covid-19 Cases per Week in 2020",
+        col = "pink")
 
 # total cumulative case count by week
 total_cases_cum <- pandemic_weekly_og %>%
@@ -30,11 +33,16 @@ total_cases_cum <- pandemic_weekly_og %>%
   summarise_at(vars(confirmed_cases), list(name = sum))
 total_cases_cum
 
-ggplot(total_cases_cum, aes(x = week, y = name)) + 
+total_cases_cum$cumulative_cases <- total_cases_cum$name
+
+gg_cum <- ggplot(total_cases_cum, aes(x = week, y = cumulative_cases)) + 
   geom_point() +
   geom_line()
 
-barplot(total_cases_cum$name, total_cases_cum$week, names.arg = c(7:51))
+barplot(total_cases_cum$cumulative_cases, total_cases_cum$week, names.arg = c(7:51),
+        ylab = "cumulative cases", xlab = "week",
+        main = "Cumulative Number of Covid-19 Cases per Week in 2020",
+        col = "pink")
 
 # average new case count by week
 mean_cases <- pandemic_weekly_og %>%
@@ -55,11 +63,21 @@ total_cases <- pandemic_weekly_og %>%
   summarise_at(vars(new_cases), list(name = sum))
 total_cases
 
-ggplot(total_cases, aes(x = week, y = name)) + 
+total_cases$new_cases <- total_cases$name
+
+gg_new <- ggplot(total_cases, aes(x = week, y = new_cases)) + 
   geom_point() +
   geom_line()
 
-barplot(total_cases$name, total_cases$week, names.arg = c(7:51))
+bar_new <- barplot(total_cases$new_cases, total_cases$week, names.arg = c(7:51),
+        ylab = "new cases", xlab = "week",
+        main = "New Number of Covid-19 Cases per Week in 2020",
+        col = "pink")
+
+save(gg_cum, file = "visuals/gg_cum.rda")
+save(gg_new, file = "visuals/gg_new.rda")
+save(total_cases_cum, file = "visuals/total_cases_cum.rda")
+save(total_cases, file = "visuals/total_cases.rda")
 
 
 
@@ -375,6 +393,12 @@ pandemic_weekly$risk <-
 
 # checking
 round(prop.table(table(pandemic_weekly$risk)), 2)
+
+
+# need smaller data set size
+set.seed(2002)
+pandemic_weekly <- 
+  pandemic_weekly[sample(nrow(pandemic_weekly), 5000), ]
 
 
 # final data sets:
