@@ -23,9 +23,15 @@ library(kknn)
 
 Splitting into training and testing
 ```{r}
-set.seed(24)
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
 
-pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = confirmed_cases)
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
 pandemic_cum_train <- training(pandemic_cum_split)
 pandemic_cum_test <- testing(pandemic_cum_split)
@@ -33,14 +39,14 @@ pandemic_cum_test <- testing(pandemic_cum_split)
 
 Creating Recipe:
 ```{r}
-pandemic_cum_rec <- recipe(confirmed_cases ~ ., data = pandemic_cum_train) %>%
+pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
   step_dummy(all_nominal_predictors())
 ```
 
 KNN Model:
 ```{r}
 knn_model <- nearest_neighbor(
-  mode = "regression",
+  mode = "classification",
   engine = "kknn", 
   neighbors = 5,
   weight_func = "rectangular", 
@@ -62,24 +68,71 @@ knn_fit_cum <- fit(knn_wflow_cum, pandemic_cum_train)
 
 Generating preicted values for each observation of the training set:
 ```{r}
-pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_train %>% select(-confirmed_cases))
+pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_train %>% select(-risk))
 pandemic_cum_knn_pred %>% 
   head()
 ```
 
 Attaching a column of the actual observed confirmed cases:
 ```{r}
-pandemic_cum_knn_pred <- bind_cols(pandemic_cum_knn_pred, pandemic_cum_train %>% select(confirmed_cases))
-pandemic_cum_train_res %>% 
+pandemic_cum_knn_pred <- bind_cols(pandemic_cum_knn_pred, pandemic_cum_train %>% select(risk))
+pandemic_cum_knn_pred %>% 
   head()
 ```
 
-Looking at RMSE on the training data:
 ```{r}
-rmse(pandemic_cum_knn_pred, truth = confirmed_cases, estimate = .pred)
+augment(knn_fit_cum, new_data = pandemic_cum_train) %>%
+  conf_mat(truth = risk, estimate = .pred_class)
 ```
-View metric set:
+
 ```{r}
-pandemic_cum_metrics <- metric_set(rmse, rsq, mae)
-pandemic_cum_metrics(pandemic_cum_knn_pred, truth = confirmed_cases, estimate = .pred)
+knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_train) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+knn_acc
 ```
+
+Testing Data:
+
+```{r}
+pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_test %>% select(-risk))
+pandemic_cum_knn_pred %>% 
+  head()
+```
+
+Attaching a column of the actual observed confirmed cases:
+```{r}
+pandemic_cum_knn_pred <- bind_cols(pandemic_cum_knn_pred, pandemic_cum_test %>% select(risk))
+pandemic_cum_knn_pred %>% 
+  head()
+```
+
+```{r}
+augment(knn_fit_cum, new_data = pandemic_cum_test) %>%
+  conf_mat(truth = risk, estimate = .pred_class)
+```
+
+```{r}
+knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_test) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+knn_acc
+```
+
+
+ROC Curve:
+```{r}
+roc <- augment(knn_fit_cum, pandemic_cum_test)
+
+roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+```
+
+
+AUC:
+```{r}
+roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+```
+
+
+

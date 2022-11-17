@@ -120,9 +120,8 @@ pandemic_new_cum <- pandemic_weekly_og %>%
 # that I want
 library(dplyr)
 pandemic_cum_sub <- pandemic_new_cum %>%
-  select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", 
-         "OHU2010", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
-         "Traffic", "Groundwater.Threats", "Haz..Waste", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
+  select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", "PovertyRate", "MedianFamilyIncome", 
+         "Traffic", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
          "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
          "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.", "retail_change", "grocery_change", 
          "transit_change")

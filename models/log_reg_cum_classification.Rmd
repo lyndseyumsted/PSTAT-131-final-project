@@ -264,13 +264,13 @@ roc %>%
 Since the Naive BAyes model performed second best, we'll go ahead and fit it to the testing data. In future weeks, we'll cover how to use cross-validation to try out different values for models' tuning parameters, but for now, this is a general overview of the process.
 
 ```{r}
-predict(nb_fit, new_data = pandemic_cum_test, type = "prob")
+predict(lda_fit_cum, new_data = pandemic_cum_test, type = "prob")
 ```
 
 We can view the confusion matrix on the **testing** data:
 
 ```{r}
-augment(nb_fit, new_data = pandemic_cum_test) %>%
+augment(lda_fit_cum, new_data = pandemic_cum_test) %>%
   conf_mat(truth = risk, estimate = .pred_class) 
 ```
 
@@ -279,7 +279,7 @@ We can also look at the **testing** accuracy. Here, we add two other metrics, se
 ```{r}
 multi_metric <- metric_set(accuracy, sensitivity, specificity)
 
-augment(nb_fit, new_data = pandemic_cum_test) %>%
+augment(lda_fit_cum, new_data = pandemic_cum_test) %>%
   multi_metric(truth = risk, estimate = .pred_class)
 ```
 
@@ -288,7 +288,7 @@ Finally, let's look at an ROC curve on the testing data:
 
 ROC Curve:
 ```{r}
-roc <- augment(nb_fit, pandemic_cum_test)
+roc <- augment(lda_fit_cum, pandemic_cum_test)
 
 roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
@@ -305,38 +305,4 @@ roc %>%
 
 
 
-
-
-
-
-K-fold Cross-Validation:
-
-
-creating folds:
-```{r}
-pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10)
-```
-
-LDA:
-```{r}
-lda_fit_folds <- fit_resamples(lda_wkflow, pandemic_folds)
-```
-QDA:
-```{r}
-qda_fit_folds <- fit_resamples(qda_wkflow, pandemic_folds)
-```
-
-
-Collect Metrics:
-
-LDA:
-```{r}
-collect_metrics(lda_fit_folds)
-```
-
-
-QDA
-```{r}
-collect_metrics(qda_fit_folds)
-```
 

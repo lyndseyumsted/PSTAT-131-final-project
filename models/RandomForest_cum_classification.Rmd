@@ -68,8 +68,13 @@ The Model
 
 We will use the {parsnip} function rand_forest() to create a random forest model and add the r-package “ranger” as the computational engine.
 ```{r}
+#setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
 # Build the model (generate the specifications of the model) 
 model_spec_default <- rand_forest(mode = "classification")%>%set_engine("ranger", verbose = TRUE)
+model_spec_default <- randomForest(pandemic_cum_train$risk ~ .,pandemic_cum_train)
+save(model_spec_default, file = "visuals/var_imp_plot.rda")
+plot(model_spec_default)
+var_imp_plot <- varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Under Random Forest Model")
 ```
 
 Fit the model on the training data (train_data prepared above)

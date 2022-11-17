@@ -22,6 +22,11 @@ library(tidyverse)   # using tidyverse and tidymodels for this project mostly
 library(tidymodels)
 library(ggplot2)   # for most of our visualizations
 tidymodels_prefer()
+library(ISLR) # For the Smarket data set
+library(ISLR2) # For the Bikeshare data set
+library(poissonreg)
+library(klaR) # for naive bayes
+library(randomForest)
 ```
 
 ## What is Covid-19?
@@ -76,6 +81,7 @@ This is a very large data set with 273 variables, all of which are not necessary
 #### Cumulative Cases throughout 2020:
 
 ```{r}
+load("models/pandemic_cum.rda")
 load("visuals/gg_cum.rda")
 load("visuals/total_cases_cum.rda")
 barplot(total_cases_cum$cumulative_cases, total_cases_cum$week, 
@@ -100,3 +106,30 @@ barplot(total_cases$new_cases, total_cases$week,
         col = "pink")
 gg_new
 ```
+
+Here we can see that there was a rise in cases around weeks 26 to 35 which are the months June through August and then there is another spike following week 46 which is about halfway through November to the rest of the year right around the winter holidays.
+
+#### Correlation Between Variables:
+
+```{r}
+library(corrplot)
+pandemic_cum %>% 
+  select(is.numeric) %>% 
+  cor() %>% 
+  corrplot(diag = FALSE, 
+           method = 'square')
+```
+
+
+
+#### Variable Importance:
+```{r}
+load("visuals/var_imp_plot.rda")
+varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Under Random Forest Model")
+```
+
+
+
+
+
+

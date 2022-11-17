@@ -23,9 +23,14 @@ tidymodels_prefer()
 
 Splitting into training and testing
 ```{r}
-set.seed(24)
+set.seed(2002)
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
 
-pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = confirmed_cases)
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
 pandemic_cum_train <- training(pandemic_cum_split)
 pandemic_cum_test <- testing(pandemic_cum_split)
@@ -35,14 +40,14 @@ First, we set up a linear regression specification:
 
 ```{r}
 lm_spec <- linear_reg() %>%
-  set_mode("regression") %>%
+  set_mode("classification") %>%
   set_engine("lm")
 ```
 
 We can use the linear model specification `lm_spec` to add a preprocessing unit with `recipe()` and `step_poly()` to create the polynomial expansion of the predictors. We can combine these two with `workflow()` to create a workflow object.
 
 ```{r}
-cum_poly_rec <- recipe(confirmed_cases ~ ., data = pandemic_cum_train) %>%
+cum_poly_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
   step_poly(all_predictors(), degree = 2)
 
 cum_poly_wf <- workflow() %>%
@@ -62,7 +67,7 @@ The testing RMSE is then calculated as:
 
 ```{r}
 augment(cum_poly_fit, new_data = pandemic_cum_test) %>%
-  rmse(truth = confirmed_cases, estimate = .pred)
+  rmse(truth = risk, estimate = .pred)
 ```
 
 Above I used the degree 2 in my polynomial fit, in order to find the degree that yields the "closest fit" I need to hyperparamter tune. Using k-Fold Cross Validiation to do this
@@ -79,7 +84,7 @@ Creating a new recipe with `degree = tune()` indicates that I intend for degree 
 
 
 ```{r}
-cum_poly_tuned_rec <- recipe(confirmed_cases ~ ., data = pandemic_cum_train) %>%
+cum_poly_tuned_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
   step_poly(all_predictors(), degree = tune())
 
 cum_poly_tuned_wf <- workflow() %>%
@@ -165,7 +170,7 @@ Finally, we assess its accuracy on the testing set:
 
 ```{r}
 augment(cum_final_fit, new_data = pandemic_cum_test) %>%
-  rmse(truth = confirmed_cases, estimate = .pred)
+  rmse(truth = risk, estimate = .pred)
 ```
 
 
