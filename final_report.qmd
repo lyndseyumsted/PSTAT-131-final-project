@@ -106,6 +106,51 @@ gg_new
 
 Here we can see that there was a rise in cases around weeks 26 to 35 which are the months June through August and then there is another spike following week 46 which is about halfway through November to the rest of the year right around the winter holidays.
 
+## Converting Cumulative Cases into Proportions of Population for a Classification Model
+
+My initial plan for this project was to build a regression model which predicted continuous case counts by the end of 2020 for each zip code. However, I decided to take this a step further and build a classification model which categorized zip codes into low, moderate, or high risk for a Covid-19 outbreak. Covid-19 cumulative case numbers are highly positively correlated with population so I decided to make a new column in the data set of the proportion of a population which has tested positive for Covid-19 by the end of the year 2020.
+
+```{r}
+boxplot(pandemic_cum$prop, horizontal = TRUE, main = "Distribution of Proportion of Covid-19 Cases in a Population",
+        xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
+```
+
+```{r}
+hist(pandemic_cum$prop, breaks = 50, main = "Distribution of Proportion of Covid-19 Cases in a Population",
+     xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
+```
+
+#### Log Transformation:
+
+```{r}
+boxplot(pandemic_cum$proplog, horizontal = TRUE,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
+        xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
+```
+
+```{r}
+hist(pandemic_cum$proplog, breaks = 50,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
+     xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
+```
+
+#### Choosing Splits for Low, Moderate, and High Risk for Covid-19 Outbreak:
+
+As I was choosing a suitable split for what would be considered low, moderate, or high risk I looked for any visible distinctions in the histogram of the proportions distribution. Looking at the histogram of proportions above, I was able to identify a high split at 0.07, or 7%. For the low split, I thought the mode or peak would be a good split which happens to be about 0.02 or 2%. Following this, I then created a variable called "risk" where I classified proportions in each of these intervals into low, moderate, and high risk.
+
+```{r}
+# creating low, moderate, and high categories based on
+# log-transformed data cut by log(0.02) and log(0.07)
+
+pandemic_cum$risk <- 
+  cut(pandemic_cum$proplog, breaks = 
+        c(-12, log(0.02) , log(0.07), 0), 
+      labels = c("low", "moderate", "high")) # 0.03 and 0.07
+
+# checking class imbalance
+round(prop.table(table(pandemic_cum$risk)), 2)
+```
+
+There is some class imbalance with only 12% of the observations being categorized as high risk, so all models will be stratified on this variable to avoid any prediction problems.
+
 #### Correlation Between Variables:
 
 ```{r}
@@ -163,7 +208,3 @@ pov_cardio_gg
 load("visuals/var_imp_plot.rda")
 varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Under Random Forest Model")
 ```
-
-## Converting Cumulative Cases into Proportions of Population for a Classification Model
-
-My initial plan for this project was to build a regression model which predicted continuous case counts by the end of 2020 for each zip code. However, I decided to take this a step further and build a classification model which categorized zip codes into low, moderate, or high risk for a Covid-19 outbreak. Covid-19 cumulative case numbers are highly positively correlated with population so I decided to make a new column in the data set of the proportion of a population which has tested positive for Covid-19 by the end of the year 2020.

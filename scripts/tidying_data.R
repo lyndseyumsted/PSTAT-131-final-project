@@ -309,7 +309,9 @@ pandemic_cum <- pandemic_cum %>%
   filter(prop < 1) %>%
   filter(prop > 0)
 
-hist(pandemic_cum$prop, breaks = 50)
+hist(pandemic_cum$prop, breaks = 50, main = "Distribution of Proportion of Covid-19 Cases in a Population",
+     xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
+
 
 # based on histogram, I think the best split for high is 7%, and then
 # the next split between low and moderate I would choose to be the 
@@ -321,16 +323,19 @@ summary(pandemic_cum$prop) # median proportion of city with covid
 # or about 4 % (pulled upward by high outliers)
 
 
-# splits at 0.03 and 0.07
+# splits at 0.02 and 0.07
 
-boxplot(pandemic_cum$prop, horizontal = TRUE)
+boxplot(pandemic_cum$prop, horizontal = TRUE, main = "Distribution of Proportion of Covid-19 Cases in a Population",
+        xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
 
 
 # log transformation
 pandemic_cum$proplog <-log(pandemic_cum$prop)
 
-hist(pandemic_cum$proplog, breaks = 50)
-boxplot(pandemic_cum$proplog, horizontal = TRUE)
+hist(pandemic_cum$proplog, breaks = 50,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
+     xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
+boxplot(pandemic_cum$proplog, horizontal = TRUE,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
+        xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
 summary(pandemic_cum$proplog)
 
 
@@ -340,7 +345,7 @@ summary(pandemic_cum$proplog)
 
 pandemic_cum$risk <- 
   cut(pandemic_cum$proplog, breaks = 
-        c(-12, log(0.03) , log(0.07), 0), 
+        c(-12, log(0.02) , log(0.07), 0), 
       labels = c("low", "moderate", "high")) # 0.03 and 0.07
 
 # checking
