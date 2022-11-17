@@ -8,7 +8,7 @@ editor: visual
 
 # Introduction
 
-This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 30 different predictors including socioeconomic factors, abiotic factors such as temperature, and pollution indicators. This project originates from a personal interest in public health and previous studying done on disease dynamics.
+This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 30 different predictors including socioeconomic factors, and abiotic factors such as temperature, and pollution indicators. This project originates from a personal interest in public health and previous studying done on disease dynamics.
 
 #### Packages and Libraries:
 
@@ -65,9 +65,6 @@ pandemic_weekly_og$transit_change <- pandemic_weekly_og$transit_stations_percent
 pandemic_weekly_og$confirmed_cases <- pandemic_weekly_og$confirmed_cases_fill
 pandemic_weekly_og$new_cases <- pandemic_weekly_og$new_cases_fill
 
-pandemic_weekly_og %>%
-  str()
-
 ```
 
 Dimensions of the data:
@@ -112,24 +109,61 @@ Here we can see that there was a rise in cases around weeks 26 to 35 which are t
 #### Correlation Between Variables:
 
 ```{r}
+load("models/pandemic_cum.rda")
 library(corrplot)
 pandemic_cum %>% 
-  select(is.numeric) %>% 
+  dplyr::select(-c(prop, proplog)) %>%
+  dplyr::select(is.numeric) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
            method = 'square')
 ```
 
+This correlation plot tells us a lot of information about the linear relationships between our predictor variables. In particular I found great interest in the high correlations Poverty Rate and Median Family Income had with the following predictor variables: Asthma, Low Birth Weight, Cardiovascular Disease, Education, Linguistic Isolation, Unemployment, Percentage of Population being under 10 years of age, Percentage of Population being Hispanic, and Percentage of Population being White. Three of these variables include medical conditions such as Asthma, Low Birth Weight, and Cardiovascular Disease so I decided to visualize each of these conditions' relationships with Poverty Rate.
 
+#### Mean Asthma and Poverty Rate
+
+```{r}
+load("visuals/pov_asthma_boxplot.rda")
+pov_asthma_boxplot
+```
+
+```{r}
+load("visuals/pov_asthma_gg.rda")
+pov_asthma_gg
+```
+
+#### Mean Low Birth Weight and Poverty Rate
+
+```{r}
+load("visuals/pov_low_birth_boxplot.rda")
+pov_low_birth_boxplot
+```
+
+```{r}
+load("visuals/pov_low_birth_gg.rda")
+pov_low_birth_gg
+```
+
+#### Mean Cardiovascular Disease and Poverty Rate:
+
+```{r}
+load("visuals/pov_cardio_boxplot.rda")
+pov_cardio_boxplot
+```
+
+```{r}
+load("visuals/pov_cardio_gg.rda")
+pov_cardio_gg
+```
 
 #### Variable Importance:
+
 ```{r}
 load("visuals/var_imp_plot.rda")
 varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Under Random Forest Model")
 ```
 
+## Converting Cumulative Cases into Proportions of Population for a Classification Model
 
-
-
-
-
+My initial plan for this project was to build a regression model which predicted continuous case counts by the end of 2020 for each zip code. However, I decided to take this a step further and build a classification model which categorized zip codes into low, moderate, or high risk for a Covid-19 outbreak. Covid-19 cumulative case numbers are highly positively correlated with population so I decided to make a new column in the data set of the proportion of a population which has tested positive for Covid-19 by the end of the year 2020.

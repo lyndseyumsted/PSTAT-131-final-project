@@ -824,3 +824,181 @@ summary(fit_population)
 plot(small_df_population$interval, small_df_population$new_cases)
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+# distribution of asthma for different Poverty Rate
+# percentiles:
+
+pov_asthma_boxplot <- pandemic_cum %>% 
+  dplyr::select("Asthma", "PovertyRate") %>%
+  mutate(PovertyRate = cut(PovertyRate, breaks = 
+                            seq(min(PovertyRate), max(PovertyRate), by = 2), 
+                          include.lowest = TRUE)) %>%
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  ggplot(aes(PovertyRate, Asthma), Asthma) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Asthma per 2% PovertyRate Intervals"
+  )
+save(pov_asthma_boxplot, file = "visuals/pov_asthma_boxplot.rda")
+
+
+# Poverty Rate and Asthma:
+
+small_df_poverty <- pandemic_cum %>%
+  dplyr::select("PovertyRate", "Asthma") %>%
+  mutate(PovertyRate = cut(PovertyRate, breaks = 
+                            seq(min(PovertyRate), max(PovertyRate), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  summarise(Asthma = mean(Asthma))
+
+
+
+plot(small_df_poverty$PovertyRate, 
+     small_df_poverty$Asthma)
+
+pov_asthma_gg <- ggplot(data = small_df_poverty, mapping = aes(PovertyRate, 
+                                               Asthma)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90))
+
+save(pov_asthma_gg, file = "visuals/pov_asthma_gg.rda")
+
+small_df_poverty$interval <- seq(1, nrow(small_df_poverty))
+
+fit_poverty <- glm(small_df_poverty$Asthma ~ small_df_poverty$interval)
+summary(fit_poverty)
+
+plot(small_df_poverty$interval, small_df_poverty$Asthma)
+abline(fit_poverty)
+
+plot(fit_poverty)
+
+
+# /////////////////////////////////////////////////////////////////////////////
+
+
+
+# distribution of low birth weight for different Poverty Rate
+# percentiles:
+
+pov_low_birth_boxplot <- pandemic_cum %>% 
+  dplyr::select("Low.Birth.Weight", "PovertyRate") %>%
+  mutate(PovertyRate = cut(PovertyRate, breaks = 
+                             seq(min(PovertyRate), max(PovertyRate), by = 2), 
+                           include.lowest = TRUE)) %>%
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  ggplot(aes(PovertyRate, Low.Birth.Weight), Low.Birth.Weight) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Low Birth Weight per 2% Poverty Rate Intervals"
+  )
+save(pov_low_birth_boxplot, file = "visuals/pov_low_birth_boxplot.rda")
+
+
+# Poverty Rate and Low.Birth.Weight:
+
+small_df_poverty <- pandemic_cum %>%
+  dplyr::select("PovertyRate", "Low.Birth.Weight") %>%
+  mutate(PovertyRate = cut(PovertyRate, breaks = 
+                             seq(min(PovertyRate), max(PovertyRate), by = 1), 
+                           include.lowest = TRUE)) %>%
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  summarise(Low.Birth.Weight = mean(Low.Birth.Weight))
+
+
+
+plot(small_df_poverty$PovertyRate, 
+     small_df_poverty$Low.Birth.Weight)
+
+pov_low_birth_gg <- ggplot(data = small_df_poverty, mapping = aes(PovertyRate, 
+                                                               Low.Birth.Weight)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90))
+
+save(pov_low_birth_gg, file = "visuals/pov_low_birth_gg.rda")
+
+small_df_poverty$interval <- seq(1, nrow(small_df_poverty))
+
+fit_poverty <- glm(small_df_poverty$Low.Birth.Weight ~ small_df_poverty$interval)
+summary(fit_poverty)
+
+plot(small_df_poverty$interval, small_df_poverty$Low.Birth.Weight)
+abline(fit_poverty)
+
+plot(fit_poverty)
+
+
+# /////////////////////////////////////////////////////////////////////////////
+
+
+# distribution of cardiovscular disease for different Poverty Rate
+# percentiles:
+
+pov_cardio_boxplot <- pandemic_cum %>% 
+  dplyr::select("Cardiovascular.Disease", "PovertyRate") %>%
+  mutate(PovertyRate = cut(PovertyRate, breaks = 
+                             seq(min(PovertyRate), max(PovertyRate), by = 2), 
+                           include.lowest = TRUE)) %>%
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  ggplot(aes(PovertyRate, Cardiovascular.Disease), Cardiovascular.Disease) +
+  geom_boxplot(varwidth = TRUE) + 
+  coord_flip() +
+  labs(
+    title = "Distribution of Cardovascular Disease per 2% Poverty Rate Intervals"
+  )
+save(pov_cardio_boxplot, file = "visuals/pov_cardio_boxplot.rda")
+
+
+# Poverty Rate and Cardiovascular.Disease:
+
+small_df_poverty <- pandemic_cum %>%
+  dplyr::select("PovertyRate", "Cardiovascular.Disease") %>%
+  mutate(PovertyRate = cut(PovertyRate, breaks = 
+                             seq(min(PovertyRate), max(PovertyRate), by = 1), 
+                           include.lowest = TRUE)) %>%
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  summarise(Cardiovascular.Disease = mean(Cardiovascular.Disease))
+
+
+
+plot(small_df_poverty$PovertyRate, 
+     small_df_poverty$Cardiovascular.Disease)
+
+pov_cardio_gg <- ggplot(data = small_df_poverty, mapping = aes(PovertyRate, 
+                                                                  Cardiovascular.Disease)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90))
+
+save(pov_cardio_gg, file = "visuals/pov_cardio_gg.rda")
+
+small_df_poverty$interval <- seq(1, nrow(small_df_poverty))
+
+fit_poverty <- glm(small_df_poverty$Cardiovascular.Disease ~ small_df_poverty$interval)
+summary(fit_poverty)
+
+plot(small_df_poverty$interval, small_df_poverty$Cardiovascular.Disease)
+abline(fit_poverty)
+
+plot(fit_poverty)
+
+
+
+# /////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
