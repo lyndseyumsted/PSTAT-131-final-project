@@ -12,7 +12,7 @@ This project is intended to build and deploy a machine learning classification m
 
 #### Packages and Libraries:
 
-```{r}
+```{r, message = FALSE}
 library(corrplot)  # for the correlation plot
 library(discrim)  # for linear discriminant analysis
 library(corrr)   # for calculating correlation
