@@ -163,7 +163,69 @@ roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
 ```
 
+Bagging and Random Forest:
 
+```{r}
+bagging_spec <- rand_forest(mtry = .cols()) %>%
+  set_engine("randomForest", importance = TRUE) %>%
+  set_mode("classification")
+```
+
+fit the model:
+```{r}
+bagging_fit <- fit(bagging_spec, risk ~ ., 
+                   data = pandemic_cum_train)
+```
+
+testing performance:
+```{r}
+augment(bagging_fit, new_data = pandemic_cum_test) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+```
+
+
+We can also create a quick scatterplot between the true and predicted values:
+```{r}
+augment(bagging_fit, new_data = pandemic_cum_test) %>%
+  ggplot(aes(risk, .pred_class)) +
+  geom_abline() +
+  geom_point(alpha = 0.5)
+```
+
+Variable Importance:
+```{r}
+vip(bagging_fit)
+```
+
+looking at the random forest:
+```{r}
+rf_spec <- rand_forest(mtry = 6) %>%
+  set_engine("randomForest", importance = TRUE) %>%
+  set_mode("classification")
+```
+
+and fitting the model like normal:
+```{r}
+rf_fit <- fit(rf_spec, risk ~ ., data = pandemic_cum_train)
+```
+
+accuracy on training:
+```{r}
+augment(rf_fit, new_data = pandemic_cum_train) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+```
+
+
+accuracy on testing:
+```{r}
+augment(rf_fit, new_data = pandemic_cum_test) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+```
+
+Variable importance:
+```{r}
+vip(rf_fit)
+```
 
 
 

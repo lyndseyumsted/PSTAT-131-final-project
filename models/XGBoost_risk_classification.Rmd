@@ -1,0 +1,386 @@
+---
+title: "XGBoost Model on Risk Classification"
+author: "Lyndsey Umsted"
+date: "2022-11-19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Loading neccessary libraries:
+```{r}
+library(tidyverse)
+library(dplyr)
+library(glmnet)
+library(xgboost)
+library(ranger)
+library(lsr)
+library(corrr)
+library(tidyr)
+library(car)
+library(moments)
+library(ggpubr)
+library(BBmisc)
+library(rsample)
+library(recipes)
+library(randomForest)
+library(parsnip)
+library(workflows)
+library(tune)
+library(dials)
+library(yardstick)
+require(xgboost)
+require(data.table)
+require(Matrix)
+library(caret)
+library(data.table)
+library(mlr3)
+library(class)
+library(ParamHelpers)
+```
+
+Splitting into training and testing
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+
+
+x_train <- as.matrix(pandemic_cum_train[,-22])
+x_test <- as.matrix(pandemic_cum_test[,-22])
+
+y_train <- (as.numeric(pandemic_cum_train$risk) - 1)
+y_test <- (as.numeric(pandemic_cum_test$risk) - 1)
+
+# y_train <- to_categorical(y_train)
+# y_test <- to_categorical(y_test)
+
+
+dtrain <- xgb.DMatrix(data = x_train, label = y_train)
+dtest <- xgb.DMatrix(data = x_test, label = y_test)
+```
+
+
+Setting up Training Model:
+```{r}
+## Parameters
+params <- list(booster = "gbtree", 
+               nthread = 10,
+               silent = 0,
+               objective = "multi:softmax",
+               eta = 0.3,
+               gamma = 0,
+               max.depth = 6, 
+               min_child_weight = 1,
+               subsample = 1,
+               colsample_bytree = 1,
+               lambda = 0,
+               alpha = 1)
+
+
+xgbcv <- xgb.cv(params = params,
+                data = dtrain, 
+                nrounds = 100,
+                nfold = 5,
+                showsd = T,
+                stratified = T,
+                print_every_n = 10,
+                early_stopping_rounds = 20,
+                maximize = F,
+                verbose = 2,
+                num_class = 3) 
+
+
+# eta = 1: train-rmse:0.000601 @ [41]
+# eta = 0.3: train-rsme:0.001090 @ [132]
+# min_child_weight = 1: 0.530765
+xgbcv$best_iteration
+
+# first default - model training
+xgb.model <- xgb.train(params = params, 
+                   data = dtrain, 
+                   nrounds = xgbcv$best_iteration, 
+                   watchlist = list(val=dtest,train=dtrain), 
+                   print.every.n = 10, 
+                   early.stop.round = 10, 
+                   maximize = F , 
+                   eval_metric = "merror",
+                   num_class = 3)
+
+
+
+
+# xgb.model <- xgb.train(data = dtrain, 
+#                        nrounds = 1000,
+#                        num_class = 3)
+```
+
+Prediction
+```{r}
+# testing$predicted <- predict(xgb.model, dtest)
+# # testing$predicted[testing$predicted == 0] <- "low"
+# # testing$predicted[testing$predicted == 1] <- "moderate"
+# # testing$predicted[testing$predicted == 2] <- "high"
+# testing$check <- testing$label == testing$predicted
+# summary(testing$check)
+```
+
+```{r}
+# model prediction
+xgbpred <- predict(xgb.model, dtest)
+```
+
+```{r}
+#confusion matrix
+library(caret)
+confusionMatrix(as.factor(xgbpred), as.factor(y_test))
+
+
+# Accuracy check
+
+mse = mean((y_test - xgbpred)^2)
+mae = caret::MAE(y_test, xgbpred)
+rmse = caret::RMSE(y_test, xgbpred)
+
+cat("MSE: ", mse, "MAE: ", mae, "RMSE: ", rmse)
+```
+
+
+```{r}
+# view var imp plot
+mat <- xgb.importance(feature_names = colnames(x_train), model = xgb.model)
+xgb.plot.importance(importance_matrix = mat[1:nrow(mat)])
+```
+
+
+
+```{r}
+# #convert characters to factors
+fact_col <- colnames(pandemic_cum_train)
+
+pandemic_cum_train$risk <- as.factor(pandemic_cum_train$risk)
+pandemic_cum_test$risk <- as.factor(pandemic_cum_test$risk)
+
+#install.packages("mlr")
+library(mlr)
+
+# Create tasks
+traintask <- makeClassifTask(data = pandemic_cum_train, target = "risk")
+testtask <- makeClassifTask(data = pandemic_cum_test, target = "risk")
+
+#do one hot encoding`<br/>
+# traintask <- createDummyFeatures(obj = traintask, target = character(0L))
+# testtask <- createDummyFeatures(obj = testtask,target = character(0L))
+
+# Create learner
+lrn <- makeLearner("classif.xgboost", predict.type = "response")
+lrn$par.vals <- list(objective = 'multi:softmax',
+                     eval_metric = 'merror',
+                     nrounds = 100L,
+                     eta = 0.3)
+```
+
+```{r}
+# Set parameter space
+set.seed(22)
+
+# fact_col <- colnames(training)
+# 
+# for(i in fact_col) set(training,j=i,value = as.double(training[[i]]))
+# for (i in fact_col) set(testing,j=i,value = as.double(testing[[i]]))
+
+params <- makeParamSet(makeDiscreteParam('booster',
+                                         values = c('gbtree','dart')),
+                       makeIntegerParam('max_depth',
+                                        lower = 3,
+                                        upper = 10),
+                       makeNumericParam('min_child_weight',
+                                        lower = 3,
+                                        upper = 7),
+                       makeNumericParam('subsample',
+                                        lower = 0.5,
+                                        upper = 1),
+                       makeNumericParam('colsample_bytree',
+                                        lower = 0.5,
+                                        upper = 1),
+                       makeNumericParam('gamma',
+                                        lower = 0,
+                                        upper = 1),
+                       makeNumericParam('eta',
+                                        lower = 0.01,
+                                        upper = 0.5),
+                       makeNumericParam('lambda',
+                                        lower = 0,
+                                        upper = 0),
+                       makeNumericParam('alpha',
+                                        lower = 1,
+                                        upper = 1))
+
+
+# Set resampling strategy
+rdesc <- makeResampleDesc('CV',
+                          stratify = T,
+                          iters = 5L)
+
+# Search Strategy
+ctrl <- makeTuneControlRandom(maxit = 10L)
+
+# Set parallel backend
+library(parallel)
+library(parallelMap)
+library(class)
+parallelStartSocket(cpus = detectCores())
+
+# Parameter tuning
+mytune <- tuneParams(learner = lrn,
+                     task = traintask,
+                     resampling = rdesc,
+                     measures = getDefaultMeasure('classif'),
+                     par.set = params,
+                     control = ctrl,
+                     show.info = T)
+
+mytune$y
+
+mytune$x
+
+# Set hyperparameters
+lrn_tune <- setHyperPars(lrn, par.vals = mytune$x)
+
+# Train model
+xgmodel <- train(learner = lrn_tune, task = traintask)
+
+# Predict model
+xgpred <- predict(xgmodel, testtask)
+
+
+```
+
+
+```{r}
+#confusion matrix
+confusionMatrix(xgpred$data$response, xgpred$data$truth, positive = 'high')
+mytune$opt.path$env$path
+
+plot(xgpred$data$response, xgpred$data$truth)
+```
+
+```{r}
+## Visualize y original test and y predicted data in plot
+x = 1:length(y_test)
+# performance_plot <- plot(x, y_test, col = "red", type = 'l') +
+#   lines(x, xgpred2$data$response, col = "blue", type = 'l')
+# performance_plot
+
+ggplot() + 
+  geom_line(aes(x = (xgpred$data$id),
+                y = (xgpred$data$truth)),
+            color = 'red', size = 0.6) + 
+  geom_line(aes(x = (xgpred$data$id),
+                y = (xgpred$data$response)),
+            color = 'blue', size = 0.5) + 
+  labs(color = "Truth vs. Response")
+
+ggplot() + 
+  geom_line(aes(x = sort(xgpred$data$id),
+                y = sort(xgpred$data$truth)),
+            color = 'red', size = 0.6) + 
+  geom_line(aes(x = sort(xgpred$data$id),
+                y = sort(xgpred$data$response)),
+            color = 'blue', size = 0.5) + 
+  labs(color = "Truth vs. Response (sorted)")
+```
+
+```{r}
+## Parameters
+params <- list(booster = "dart", 
+               nthread = 10,
+               silent = 0,
+               objective = "binary:logistic",
+               eta = 0.0965,
+               gamma = 0.411,
+               max.depth = 9, 
+               min_child_weight = 5.86,
+               subsample = 0.985,
+               colsample_bytree = 0.974,
+               lambda = 0,
+               alpha = 1)
+
+
+xgbcv <- xgb.cv(params = params,
+                data = dtrain, 
+                nrounds = 100,
+                nfold = 5,
+                showsd = T,
+                stratified = T,
+                print_every_n = 10,
+                early_stopping_rounds = 20,
+                maximize = F,
+                verbose = 2) 
+
+
+# eta = 1: train-rmse:0.000601 @ [41]
+# eta = 0.3: train-rsme:0.001090 @ [132]
+# min_child_weight = 1: 0.530765
+xgbcv$best_iteration
+
+# first default - model training
+xgb.model <- xgb.train(params = params, 
+                   data = dtrain, 
+                   nrounds = xgbcv$best_iteration, 
+                   watchlist = list(val=dtest,train=dtrain), 
+                   print.every.n = 10, 
+                   early.stop.round = 10, 
+                   maximize = F , 
+                   eval_metric = "error")
+
+
+
+
+# xgb.model <- xgb.train(data = dtrain, 
+#                        nrounds = 1000,
+#                        num_class = 3)
+```
+
+
+```{r}
+cat_df2 <- cat_df %>%
+  mutate(pland_forest = pland_forest + 2)
+
+x <- as.matrix(cat_df2[,-3])
+
+y <- (as.numeric(cat_df2$Cutaneous.Leishmaniasis) - 1)
+
+d <- xgb.DMatrix(data = x)
+
+
+
+pred <- predict(xgb.model, x)
+xgbpred <- ifelse (xgbpred > 0.5,'low','high')
+
+pred <- predict(xgb.model, d)
+
+pred <- ifelse (pred > 0.5,1,0)
+#pred
+sum(pred == 0)
+```
+
+
+
+
+
+
+
+
+

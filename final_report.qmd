@@ -365,7 +365,7 @@ pandemic_cum %>%
 ```{r}
 pandemic_cum %>% 
   dplyr::select("risk", "Cardiovascular.Disease") %>%
-  mutate(Cardiovascular.Disease = cut(Cardiovascular.Disease, 
+  mutate(Asian_A_.m_. = cut(Cardiovascular.Disease, 
                                   breaks = seq(min(Cardiovascular.Disease), 
                                   max(Cardiovascular.Disease), by = 0.5), 
                           include.lowest = TRUE)) %>%
@@ -406,6 +406,40 @@ pandemic_cum %>%
   group_by(Solid.Waste) %>%
   na.omit(Solid.Waste) %>%
   ggplot(aes(Solid.Waste)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Asian American:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Asian_Am_.") %>%
+  mutate(Asian_Am_. = cut(Asian_Am_., 
+                                  breaks = seq(min(Asian_Am_.), 
+                                  max(Asian_Am_.), by = 2), 
+                          include.lowest = TRUE)) %>%
+  group_by(Asian_Am_.) %>%
+  na.omit(Asian_Am_.) %>%
+  ggplot(aes(Asian_Am_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Urban:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Urban") %>%
+  mutate(Urban = cut(Urban, 
+                                  breaks = seq(min(Urban), 
+                                  max(Urban), by = 0.05), 
+                          include.lowest = TRUE)) %>%
+  group_by(Urban) %>%
+  na.omit(Urban) %>%
+  ggplot(aes(Urban)) + 
   geom_bar(aes(fill = risk)) +
   scale_fill_manual(values = c("light blue", "pink", "light green")) +
   theme(axis.text.x = element_text(angle = 90))
