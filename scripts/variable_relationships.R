@@ -26,6 +26,18 @@ pandemic_cum %>%
     title = "Distribution of Confirmed Cases per 3 % Hispanic Makeup Intervals"
   )
 
+pandemic_cum %>% 
+  dplyr::select("risk", "Hispanic_.") %>%
+  mutate(Hispanic_. = cut(Hispanic_., breaks = 
+                            seq(min(Hispanic_.), max(Hispanic_.), by = 5), 
+                          include.lowest = TRUE)) %>%
+  group_by(Hispanic_.) %>%
+  na.omit(Hispanic_.) %>%
+  ggplot(aes(Hispanic_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+
 
 # mean cumulative cases and hispanic:
 
@@ -584,6 +596,18 @@ plot(small_df_Pop..Char$interval, small_df_Pop..Char$new_cases)
 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ Education
 
 # mean cumulative cases and education:
+
+pandemic_cum %>% 
+  dplyr::select("risk", "Education") %>%
+  mutate(Education = cut(Education, breaks = 
+                           seq(min(Education), max(Education), by = 2), 
+                         include.lowest = TRUE)) %>%
+  group_by(Education) %>%
+  na.omit(Education) %>%
+  ggplot(aes(Education)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
 
 small_df_education <- pandemic_cum %>%
   dplyr::select("confirmed_cases", "Education") %>%

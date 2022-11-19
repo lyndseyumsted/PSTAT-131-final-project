@@ -59,9 +59,6 @@ setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
 pandemic_weekly_og <- read.csv("data/pandemic_weekly.csv")
 
 # changing naming to shorten
-pandemic_weekly_og$retail_change <- pandemic_weekly_og$retail_and_recreation_percent_change_from_baseline
-pandemic_weekly_og$grocery_change <- pandemic_weekly_og$grocery_and_pharmacy_percent_change_from_baseline
-pandemic_weekly_og$transit_change <- pandemic_weekly_og$transit_stations_percent_change_from_baseline
 pandemic_weekly_og$confirmed_cases <- pandemic_weekly_og$confirmed_cases_fill
 pandemic_weekly_og$new_cases <- pandemic_weekly_og$new_cases_fill
 
@@ -73,7 +70,7 @@ Dimensions of the data:
 dim(pandemic_weekly_og)
 ```
 
-This is a very large data set with 273 variables, all of which are not necessary. The variable labeled "confirmed_cases" will be the focus of our predictions. This column contains the cumulative number of positive Covid-19 cases per week in each zip-code during the 2020 year. The data set also contains a variable labeled "new_cases" which contains the new number of positive Covid-19 cases per week during the 2020 year. We can explore these two variables:
+This is a very large data set with 270 variables, all of which are not necessary. The variable labeled "confirmed_cases" will be the focus of our predictions. This column contains the cumulative number of positive Covid-19 cases per week in each zip-code during the 2020 year. The data set also contains a variable labeled "new_cases" which contains the new number of positive Covid-19 cases per week during the 2020 year. We can explore these two variables:
 
 #### Cumulative Cases throughout 2020:
 
@@ -207,4 +204,209 @@ pov_cardio_gg
 ```{r}
 load("visuals/var_imp_plot.rda")
 varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Under Random Forest Model")
+```
+
+### Distribution of Risk Levels for Different Predictor Variables:
+
+#### Hispanic:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Hispanic_.") %>%
+  mutate(Hispanic_. = cut(Hispanic_., breaks = 
+                            seq(min(Hispanic_.), max(Hispanic_.), by = 5), 
+                          include.lowest = TRUE)) %>%
+  group_by(Hispanic_.) %>%
+  na.omit(Hispanic_.) %>%
+  ggplot(aes(Hispanic_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Education:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Education") %>%
+  mutate(Education = cut(Education, breaks = 
+                            seq(min(Education), max(Education), by = 2), 
+                          include.lowest = TRUE)) %>%
+  group_by(Education) %>%
+  na.omit(Education) %>%
+  ggplot(aes(Education)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+#### Other Ethnicity:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Other_ethnicity_.") %>%
+  mutate(Other_ethnicity_. = cut(Other_ethnicity_., breaks = 
+                            seq(min(Other_ethnicity_.), max(Other_ethnicity_.), by = 0.25), 
+                          include.lowest = TRUE)) %>%
+  group_by(Other_ethnicity_.) %>%
+  na.omit(Other_ethnicity_.) %>%
+  ggplot(aes(Other_ethnicity_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+#### White:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "White_.") %>%
+  mutate(White_. = cut(White_., breaks = 
+                            seq(min(White_.), max(White_.), by = 2.5), 
+                          include.lowest = TRUE)) %>%
+  group_by(White_.) %>%
+  na.omit(White_.) %>%
+  ggplot(aes(White_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Linguistic Isolation:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Linguistic.Isolation") %>%
+  mutate(Linguistic.Isolation = 
+           cut(Linguistic.Isolation, 
+               breaks = seq(min(Linguistic.Isolation), 
+                            max(Linguistic.Isolation), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(Linguistic.Isolation) %>%
+  na.omit(Linguistic.Isolation) %>%
+  ggplot(aes(Linguistic.Isolation)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Median Family Income:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "MedianFamilyIncome") %>%
+  mutate(MedianFamilyIncome = cut(MedianFamilyIncome, 
+                                  breaks = seq(min(MedianFamilyIncome), 
+                                  max(MedianFamilyIncome), by = 5000), 
+                          include.lowest = TRUE)) %>%
+  group_by(MedianFamilyIncome) %>%
+  na.omit(MedianFamilyIncome) %>%
+  ggplot(aes(MedianFamilyIncome)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Poverty Rate:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "PovertyRate") %>%
+  mutate(PovertyRate = cut(PovertyRate, 
+                                  breaks = seq(min(PovertyRate), 
+                                  max(PovertyRate), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(PovertyRate) %>%
+  na.omit(PovertyRate) %>%
+  ggplot(aes(PovertyRate)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Asthma:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Asthma") %>%
+  mutate(Asthma = cut(Asthma, 
+                                  breaks = seq(min(Asthma), 
+                                  max(Asthma), by = 5), 
+                          include.lowest = TRUE)) %>%
+  group_by(Asthma) %>%
+  na.omit(Asthma) %>%
+  ggplot(aes(Asthma)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Low Birth Weight:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Low.Birth.Weight") %>%
+  mutate(Low.Birth.Weight = cut(Low.Birth.Weight, 
+                                  breaks = seq(min(Low.Birth.Weight), 
+                                  max(Low.Birth.Weight), by = 0.25), 
+                          include.lowest = TRUE)) %>%
+  group_by(Low.Birth.Weight) %>%
+  na.omit(Low.Birth.Weight) %>%
+  ggplot(aes(Low.Birth.Weight)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Cardiovascular Disease:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Cardiovascular.Disease") %>%
+  mutate(Cardiovascular.Disease = cut(Cardiovascular.Disease, 
+                                  breaks = seq(min(Cardiovascular.Disease), 
+                                  max(Cardiovascular.Disease), by = 0.5), 
+                          include.lowest = TRUE)) %>%
+  group_by(Cardiovascular.Disease) %>%
+  na.omit(Cardiovascular.Disease) %>%
+  ggplot(aes(Cardiovascular.Disease)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Unemployment:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Unemployment") %>%
+  mutate(Unemployment = cut(Unemployment, 
+                                  breaks = seq(min(Unemployment), 
+                                  max(Unemployment), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(Unemployment) %>%
+  na.omit(Unemployment) %>%
+  ggplot(aes(Unemployment)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Solid Waste:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Solid.Waste") %>%
+  mutate(Solid.Waste = cut(Solid.Waste, 
+                                  breaks = seq(min(Solid.Waste), 
+                                  max(Solid.Waste), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(Solid.Waste) %>%
+  na.omit(Solid.Waste) %>%
+  ggplot(aes(Solid.Waste)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
 ```

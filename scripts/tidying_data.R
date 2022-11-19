@@ -2,9 +2,6 @@
 pandemic_weekly_og <- read.csv("data/pandemic_weekly.csv")
 
 # changing naming to shorten
-pandemic_weekly_og$retail_change <- pandemic_weekly_og$retail_and_recreation_percent_change_from_baseline
-pandemic_weekly_og$grocery_change <- pandemic_weekly_og$grocery_and_pharmacy_percent_change_from_baseline
-pandemic_weekly_og$transit_change <- pandemic_weekly_og$transit_stations_percent_change_from_baseline
 pandemic_weekly_og$confirmed_cases <- pandemic_weekly_og$confirmed_cases_fill
 pandemic_weekly_og$new_cases <- pandemic_weekly_og$new_cases_fill
 
@@ -123,8 +120,7 @@ pandemic_cum_sub <- pandemic_new_cum %>%
   select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", "PovertyRate", "MedianFamilyIncome", 
          "Traffic", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
          "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
-         "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.", "retail_change", "grocery_change", 
-         "transit_change")
+         "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.")
 
 library(finalfit)
 
@@ -212,8 +208,7 @@ pandemic_weekly_sub <- pandemic_new_weekly %>%
          "OHU2010", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
          "Traffic", "Groundwater.Threats", "Haz..Waste", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
          "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
-         "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.", "retail_change", "grocery_change", 
-         "transit_change")
+         "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.")
 
 library(finalfit)
 

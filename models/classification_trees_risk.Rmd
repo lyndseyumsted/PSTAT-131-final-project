@@ -1,0 +1,171 @@
+---
+title: "Classificaiton Trees on Cumulative Risk"
+author: "Lyndsey Umsted"
+date: "2022-11-18"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Loading neccessary libraries:
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(ISLR)
+library(rpart.plot)
+library(vip)
+library(janitor)
+library(randomForest)
+library(xgboost)
+```
+
+Splitting into training and testing
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+Fitting classification tree:
+```{r}
+tree_spec <- decision_tree() %>%
+  set_engine("rpart")
+
+class_tree_spec <- tree_spec %>%
+  set_mode("classification")
+```
+
+
+Fit the model:
+```{r}
+class_tree_fit <- class_tree_spec %>%
+  fit(risk ~., data = pandemic_cum_train)
+```
+
+
+Visualize the decision tree:
+```{r}
+class_tree_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+```
+
+Training set accuracy:
+```{r}
+augment(class_tree_fit, new_data = pandemic_cum_train) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+```
+
+Confusion Matrix:
+```{r}
+augment(class_tree_fit, new_data = pandemic_cum_train) %>%
+  conf_mat(truth = risk, estimate = .pred_class)
+```
+
+Accuracy on testing set:
+```{r}
+augment(class_tree_fit, new_data = pandemic_cum_test) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+```
+
+
+Confusion Matrix:
+```{r}
+augment(class_tree_fit, new_data = pandemic_cum_test) %>%
+  conf_mat(truth = risk, estimate = .pred_class)
+```
+
+Let us try to tune the cost_complexity of the decision tree, or the pruning penalty, to find a more optimal complexity. We use the class_tree_spec object and use the set_args() function to specify that we want to tune cost_complexity. This is then passed directly into the workflow object to avoid creating an intermediate object.
+
+```{r}
+class_tree_wf <- workflow() %>%
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
+  add_formula(risk ~ .)
+```
+
+To be able to tune the hyperparameter, we need 2 more objects – a resamples object (we will use a k-fold cross-validation data set), and a grid of values to try. Since we are only tuning one hyperparameter, a regular grid is probably simplest.
+
+```{r}
+set.seed(3435)
+pandemic_fold <- vfold_cv(pandemic_cum_train)
+
+param_grid <- grid_regular(cost_complexity(range = c(-3, -1)), levels = 10)
+
+tune_res <- tune_grid(
+  class_tree_wf, 
+  resamples = pandemic_fold, 
+  grid = param_grid, 
+  metrics = metric_set(accuracy)
+)
+
+```
+
+Using autoplot() shows which values of cost_complexity appear to produce the highest accuracy:
+```{r}
+autoplot(tune_res)
+```
+
+We can now select the best performing value with select_best(), finalize the workflow by updating the value of cost_complexity, and fit the model on the full training data set.
+
+```{r}
+best_complexity <- select_best(tune_res)
+
+class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
+
+class_tree_final_fit <- fit(class_tree_final, data = pandemic_cum_train)
+```
+
+At last we can visualize the model, and we see that the better-performing model is much less complex than the original model we fit.
+
+```{r}
+class_tree_final_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+```
+
+Accuracy on testing set:
+```{r}
+augment(class_tree_final_fit, new_data = pandemic_cum_test) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+```
+
+
+Confusion Matrix:
+```{r}
+augment(class_tree_final_fit, new_data = pandemic_cum_test) %>%
+  conf_mat(truth = risk, estimate = .pred_class)
+```
+
+ROC Curve:
+```{r}
+roc <- augment(class_tree_final_fit, pandemic_cum_test)
+
+roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+```
+
+AUC:
+```{r}
+roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+```
+
+
+
+
+
+
+
