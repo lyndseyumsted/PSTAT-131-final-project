@@ -307,7 +307,7 @@ ggplot() +
 params <- list(booster = "dart", 
                nthread = 10,
                silent = 0,
-               objective = "binary:logistic",
+               objective = "multi:softmax",
                eta = 0.0965,
                gamma = 0.411,
                max.depth = 9, 
@@ -315,7 +315,8 @@ params <- list(booster = "dart",
                subsample = 0.985,
                colsample_bytree = 0.974,
                lambda = 0,
-               alpha = 1)
+               alpha = 1,
+               num_class = 3)
 
 
 xgbcv <- xgb.cv(params = params,
@@ -343,7 +344,7 @@ xgb.model <- xgb.train(params = params,
                    print.every.n = 10, 
                    early.stop.round = 10, 
                    maximize = F , 
-                   eval_metric = "error")
+                   eval_metric = "merror")
 
 
 
@@ -352,34 +353,6 @@ xgb.model <- xgb.train(params = params,
 #                        nrounds = 1000,
 #                        num_class = 3)
 ```
-
-
-```{r}
-cat_df2 <- cat_df %>%
-  mutate(pland_forest = pland_forest + 2)
-
-x <- as.matrix(cat_df2[,-3])
-
-y <- (as.numeric(cat_df2$Cutaneous.Leishmaniasis) - 1)
-
-d <- xgb.DMatrix(data = x)
-
-
-
-pred <- predict(xgb.model, x)
-xgbpred <- ifelse (xgbpred > 0.5,'low','high')
-
-pred <- predict(xgb.model, d)
-
-pred <- ifelse (pred > 0.5,1,0)
-#pred
-sum(pred == 0)
-```
-
-
-
-
-
 
 
 

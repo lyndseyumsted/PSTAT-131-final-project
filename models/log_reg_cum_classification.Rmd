@@ -25,7 +25,7 @@ tidymodels_prefer()
 
 Splitting into training and testing
 ```{r}
-setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+#setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("pandemic_cum.rda")
 
 set.seed(2002)
@@ -261,7 +261,7 @@ roc %>%
 
 ## Fitting to Testing Data
 
-Since the Naive BAyes model performed second best, we'll go ahead and fit it to the testing data. In future weeks, we'll cover how to use cross-validation to try out different values for models' tuning parameters, but for now, this is a general overview of the process.
+Since the LDA model performed second best, we'll go ahead and fit it to the testing data. In future weeks, we'll cover how to use cross-validation to try out different values for models' tuning parameters, but for now, this is a general overview of the process.
 
 ```{r}
 predict(lda_fit_cum, new_data = pandemic_cum_test, type = "prob")

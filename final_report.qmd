@@ -39,6 +39,30 @@ https://www.who.int/health-topics/coronavirus#tab=tab_1
 
 The data set used for this research project was provided to me by a faculty member, Dr. Andrew MacDonald, who I had the opportunity to work under this summer during an undergraduate research internship. Dr. MacDonald merged data from the *LA Times* on socioeconomic factors and food access for different Californian zip codes with data reflecting Covid-19 case counts, weather, and pollution levels from the same zip codes during the Covid-19 pandemic in 2020. The original data set contained 273 columns of data.
 
+#### Predictor Variables:
+
+1.  `Mean_Max`: Highest recorded temperature in degrees Celsius.
+2.  `Urban`: Flag for urban tract.
+3.  `PovertyRate`: Share of the tract population living with income at or below the Federal poverty thresholds for family size.
+4.  `MedianFamilyIncome`: Tract median family income.
+5.  `Traffic`: Traffic density, in vehicle-kilometers per hour per road length, within 150 meters of the census tract boundary.
+6.  `Sold.Waste`: Sum of weighted solid waste sites and facilities (SWIS) within  buffered distances to populated blocks of census tracts.
+7.  `Asthma`: Age-adjusted rate of emergency department visits for asthma.
+8.  `Low.Birth.Weight`: Percentage of low birth weights.
+9.  `Cardiovascular.Disease`: Age-adjusted rate of emergency department visits for heart attacks per 10,000.
+10. `Education`: Percent of population over 25 with less than a high school education.
+11. `Linguistic.Isolation`: Percent limited English speaking households.
+12. `Unemployment`: Percent of the population over the age of 16 that is unemployed and eligible for the labor force.
+13. `under_10_.`: Percent of the population of the age 10 or younger.
+14. `Age11_to_64_.`: Percent of the population between the ages 11 and 64.
+15. `over_65_.`: Percent of the population of the age 65 or older.
+16. `Hispanic_.`: Percent of the population that is Hispanic.
+17. `White_.`: Percent of the population that is White.
+18. `African_Am_.`: Percent of the population that is African American.
+19. `Asian_Am_.:` Percent of the population that is Asian American.
+20. `Native_Am_.`: Percent of the population that is Native American
+21. `Other_ethnicity_.`: Percent of the population that belongs to an ethnic group not identified above.
+
 ## Research Questions
 
 1.  What factors of a population have underlying effects on the number of Covid-19 Cases?
@@ -54,7 +78,7 @@ The original data set used for this project contained 55,620 observations of 268
 
 The pandemic data set is stored in a .csv format and can be read in from the directory:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
 pandemic_weekly_og <- read.csv("data/pandemic_weekly.csv")
 
@@ -66,7 +90,7 @@ pandemic_weekly_og$new_cases <- pandemic_weekly_og$new_cases_fill
 
 Dimensions of the data:
 
-```{r}
+```{r, echo=FALSE}
 dim(pandemic_weekly_og)
 ```
 
@@ -74,7 +98,7 @@ This is a very large data set with 270 variables, all of which are not necessary
 
 #### Cumulative Cases throughout 2020:
 
-```{r}
+```{r, echo=FALSE}
 load("models/pandemic_cum.rda")
 load("visuals/gg_cum.rda")
 load("visuals/total_cases_cum.rda")
@@ -89,7 +113,7 @@ gg_cum
 
 #### New Cases each week of 2020:
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/gg_new.rda")
 load("visuals/total_cases.rda")
 barplot(total_cases$new_cases, total_cases$week, 
@@ -107,24 +131,24 @@ Here we can see that there was a rise in cases around weeks 26 to 35 which are t
 
 My initial plan for this project was to build a regression model which predicted continuous case counts by the end of 2020 for each zip code. However, I decided to take this a step further and build a classification model which categorized zip codes into low, moderate, or high risk for a Covid-19 outbreak. Covid-19 cumulative case numbers are highly positively correlated with population so I decided to make a new column in the data set of the proportion of a population which has tested positive for Covid-19 by the end of the year 2020.
 
-```{r}
+```{r, echo=FALSE}
 boxplot(pandemic_cum$prop, horizontal = TRUE, main = "Distribution of Proportion of Covid-19 Cases in a Population",
         xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
 ```
 
-```{r}
+```{r, echo=FALSE}
 hist(pandemic_cum$prop, breaks = 50, main = "Distribution of Proportion of Covid-19 Cases in a Population",
      xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
 ```
 
 #### Log Transformation:
 
-```{r}
+```{r, echo=FALSE}
 boxplot(pandemic_cum$proplog, horizontal = TRUE,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
         xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
 ```
 
-```{r}
+```{r, echo=FALSE}
 hist(pandemic_cum$proplog, breaks = 50,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
      xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
 ```
@@ -133,7 +157,7 @@ hist(pandemic_cum$proplog, breaks = 50,  main = "Log Distribution of Proportion 
 
 As I was choosing a suitable split for what would be considered low, moderate, or high risk I looked for any visible distinctions in the histogram of the proportions distribution. Looking at the histogram of proportions above, I was able to identify a high split at 0.07, or 7%. For the low split, I thought the mode or peak would be a good split which happens to be about 0.02 or 2%. Following this, I then created a variable called "risk" where I classified proportions in each of these intervals into low, moderate, and high risk.
 
-```{r}
+```{r, echo=FALSE}
 # creating low, moderate, and high categories based on
 # log-transformed data cut by log(0.02) and log(0.07)
 
@@ -150,7 +174,7 @@ There is some class imbalance with only 12% of the observations being categorize
 
 #### Correlation Between Variables:
 
-```{r}
+```{r, echo=FALSE}
 load("models/pandemic_cum.rda")
 library(corrplot)
 pandemic_cum %>% 
@@ -165,43 +189,43 @@ This correlation plot tells us a lot of information about the linear relationshi
 
 #### Mean Asthma and Poverty Rate
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/pov_asthma_boxplot.rda")
 pov_asthma_boxplot
 ```
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/pov_asthma_gg.rda")
 pov_asthma_gg
 ```
 
 #### Mean Low Birth Weight and Poverty Rate
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/pov_low_birth_boxplot.rda")
 pov_low_birth_boxplot
 ```
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/pov_low_birth_gg.rda")
 pov_low_birth_gg
 ```
 
 #### Mean Cardiovascular Disease and Poverty Rate:
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/pov_cardio_boxplot.rda")
 pov_cardio_boxplot
 ```
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/pov_cardio_gg.rda")
 pov_cardio_gg
 ```
 
 #### Variable Importance:
 
-```{r}
+```{r, echo=FALSE}
 load("visuals/var_imp_plot.rda")
 varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Under Random Forest Model")
 ```
@@ -210,7 +234,7 @@ varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Un
 
 #### Hispanic:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Hispanic_.") %>%
   mutate(Hispanic_. = cut(Hispanic_., breaks = 
@@ -226,7 +250,7 @@ pandemic_cum %>%
 
 #### Education:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Education") %>%
   mutate(Education = cut(Education, breaks = 
@@ -243,7 +267,7 @@ pandemic_cum %>%
 
 #### Other Ethnicity:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Other_ethnicity_.") %>%
   mutate(Other_ethnicity_. = cut(Other_ethnicity_., breaks = 
@@ -260,7 +284,7 @@ pandemic_cum %>%
 
 #### White:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "White_.") %>%
   mutate(White_. = cut(White_., breaks = 
@@ -276,7 +300,7 @@ pandemic_cum %>%
 
 #### Linguistic Isolation:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Linguistic.Isolation") %>%
   mutate(Linguistic.Isolation = 
@@ -294,7 +318,7 @@ pandemic_cum %>%
 
 #### Median Family Income:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "MedianFamilyIncome") %>%
   mutate(MedianFamilyIncome = cut(MedianFamilyIncome, 
@@ -311,7 +335,7 @@ pandemic_cum %>%
 
 #### Poverty Rate:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "PovertyRate") %>%
   mutate(PovertyRate = cut(PovertyRate, 
@@ -328,7 +352,7 @@ pandemic_cum %>%
 
 #### Asthma:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Asthma") %>%
   mutate(Asthma = cut(Asthma, 
@@ -345,7 +369,7 @@ pandemic_cum %>%
 
 #### Low Birth Weight:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Low.Birth.Weight") %>%
   mutate(Low.Birth.Weight = cut(Low.Birth.Weight, 
@@ -362,7 +386,7 @@ pandemic_cum %>%
 
 #### Cardiovascular Disease:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Cardiovascular.Disease") %>%
   mutate(Asian_A_.m_. = cut(Cardiovascular.Disease, 
@@ -379,7 +403,7 @@ pandemic_cum %>%
 
 #### Unemployment:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Unemployment") %>%
   mutate(Unemployment = cut(Unemployment, 
@@ -396,7 +420,7 @@ pandemic_cum %>%
 
 #### Solid Waste:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Solid.Waste") %>%
   mutate(Solid.Waste = cut(Solid.Waste, 
@@ -413,7 +437,7 @@ pandemic_cum %>%
 
 #### Asian American:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Asian_Am_.") %>%
   mutate(Asian_Am_. = cut(Asian_Am_., 
@@ -430,7 +454,7 @@ pandemic_cum %>%
 
 #### Urban:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Urban") %>%
   mutate(Urban = cut(Urban, 
@@ -444,3 +468,75 @@ pandemic_cum %>%
   scale_fill_manual(values = c("light blue", "pink", "light green")) +
   theme(axis.text.x = element_text(angle = 90))
 ```
+
+#### Under 10:
+
+```{r, echo=FALSE}
+pandemic_cum %>% 
+  dplyr::select("risk", "under_10_.") %>%
+  mutate(under_10_. = cut(under_10_., 
+                                  breaks = seq(min(under_10_.), 
+                                  max(under_10_.), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(under_10_.) %>%
+  na.omit(under_10_.) %>%
+  ggplot(aes(under_10_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Between 11 and 64:
+
+```{r, echo=FALSE}
+pandemic_cum %>% 
+  dplyr::select("risk", "Age11_to_64_.") %>%
+  mutate(Age11_to_64_. = cut(Age11_to_64_., 
+                                  breaks = seq(min(Age11_to_64_.), 
+                                  max(Age11_to_64_.), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(Age11_to_64_.) %>%
+  na.omit(Age11_to_64_.) %>%
+  ggplot(aes(Age11_to_64_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+#### Over 65:
+
+```{r, echo=FALSE}
+pandemic_cum %>% 
+  dplyr::select("risk", "over_65_.") %>%
+  mutate(over_65_. = cut(over_65_., 
+                                  breaks = seq(min(over_65_.), 
+                                  max(over_65_.), by = 1), 
+                          include.lowest = TRUE)) %>%
+  group_by(over_65_.) %>%
+  na.omit(over_65_.) %>%
+  ggplot(aes(over_65_.)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+## Data Splitting:
+
+When fitting the pandemic data to my machine learning models, I need to split the data into a training and testing/validation set. This allows the models to be trained on a random subset of the data in order to build predictions. Once trained on the training set, each of the models are then used to create predictions on the testing/validation set in order to get a measure of the models' accuracies for making predictions on new data. The training and testing validation approach gives us an estimate on how the models will perform on new data the models haven't seen yet. In order to split my data into training and testing sets I used a random seed and I have decided to make the proportion of split 70% for the training data and 30% for the testing data. Another important factor in splitting the data is identifying what to stratify the split on, which in my case is the response variable "risk". As seen in the exploratory analysis, my response variable "risk" is divided into three categories or classes: low, moderate, and high, however there is not an evenly distributed number of observations of each of these classes. According to the exploratory analysis 38% of the responses are low, 50% of the responses are moderate, and only 12% of the responses are high. This class imbalance may result in my models having low predictive power for accurately classifying high and possibly even low risk areas. Stratifying on the risk variable avoids the possibility of a disproportionate amount of high risk observations ending up in the training or testing sets. After stratifying, both the training and testing sets should have the same 38%, 50%, and 12% distribution of each class.
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+### Cross Validation:
