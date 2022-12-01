@@ -124,6 +124,7 @@ pandemic_cum_sub <- pandemic_new_cum %>%
          "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
          "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.")
 
+save(pandemic_cum_sub, file = "models/pandemic_cum_sub.rda")
 
 library(finalfit)
 

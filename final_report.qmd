@@ -106,6 +106,7 @@ og_missing_plot
 As we can see, there are not a lot of missing values in our original data for these variables, thus a solution to the missing values problem is to just remove them from our data:
 
 ```{r}
+load("models/pandemic_cum_sub.rda")
 pandemic_cum <- pandemic_cum_sub %>%
   na.omit()
 ```
@@ -155,12 +156,6 @@ hist(pandemic_cum$prop, breaks = 50, main = "Distribution of Proportion of Covid
      xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
 ```
 
-```{}
-```
-
-```{}
-```
-
 #### Choosing Splits for Low, Moderate, and High Risk for Covid-19 Outbreak:
 
 As I was choosing a suitable split for what would be considered low, moderate, or high risk I researched what is considered a "high" amount of cases. According to the World Health Organization, a 5% positive rate was considered a threshold for reopening stores and businesses during 2020. Thus, any proportions of Covid-19 cases in a population greater than 5% would be classified as high. For the low split, I decided that 2% would be a decent threshold to separate low and moderate risk. Following this, I then created a variable called "risk" where I classified proportions in each of these intervals into low, moderate, and high risk.
@@ -178,7 +173,7 @@ pandemic_cum$risk <-
 round(prop.table(table(pandemic_cum$risk)), 2)
 ```
 
-There is some class imbalance with only 28% of the observations being categorized as high risk, so all models will be stratified on this variable to avoid any prediction problems.
+There is some class imbalance with only 28% of the observations being categorized as high risk, and only 30% considered low risk, so all models will be stratified on this variable to avoid any prediction problems.
 
 #### Correlation Between Variables:
 
@@ -186,7 +181,7 @@ There is some class imbalance with only 28% of the observations being categorize
 load("models/pandemic_cum.rda")
 library(corrplot)
 pandemic_cum %>% 
-  dplyr::select(-c(prop, proplog)) %>%
+  dplyr::select(-c(prop)) %>%
   dplyr::select(is.numeric) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
@@ -411,7 +406,7 @@ pandemic_cum %>%
 
 #### Max Temperature:
 
-```{r}
+```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Mean_Tmax") %>%
   mutate(Mean_Tmax = cut(Mean_Tmax, 
@@ -428,7 +423,7 @@ pandemic_cum %>%
 
 ## Data Splitting:
 
-When fitting the pandemic data to my machine learning models, I need to split the data into a training and testing/validation set. This allows the models to be trained on a random subset of the data in order to build predictions. Once trained on the training set, each of the models are then used to create predictions on the testing/validation set in order to get a measure of the models' accuracies for making predictions on new data. The training and testing validation approach gives us an estimate on how the models will perform on new data the models haven't seen yet. In order to split my data into training and testing sets I used a random seed and I have decided to make the proportion of split 70% for the training data and 30% for the testing data. Another important factor in splitting the data is identifying what to stratify the split on, which in my case is the response variable "risk". As seen in the exploratory analysis, my response variable "risk" is divided into three categories or classes: low, moderate, and high, however there is not an evenly distributed number of observations of each of these classes. According to the exploratory analysis 30% of the responses are low, 42% of the responses are moderate, and only 28% of the responses are high. This class imbalance may result in my models having low predictive power for accurately classifying high and possibly even low risk areas. Stratifying on the risk variable avoids the possibility of a disproportionate amount of high risk observations ending up in the training or testing sets. After stratifying, both the training and testing sets should have the same 30%, 42%, and 28% distribution of each class.
+When fitting the pandemic data to my machine learning models, I need to split the data into a training and testing/validation set. This allows the models to be trained on a random subset of the data in order to build predictions. Once trained on the training set, each of the models are then used to create predictions on the testing/validation set in order to get a measure of the models' accuracies for making predictions on new data. The training and testing validation approach gives us an estimate on how the models will perform on new data the models haven't seen yet. In order to split my data into training and testing sets I used a random seed and I have decided to make the proportion of split 80% for the training data and 20% for the testing data. Another important factor in splitting the data is identifying what to stratify the split on, which in my case is the response variable "risk". As seen in the exploratory analysis, my response variable "risk" is divided into three categories or classes: low, moderate, and high, however there is not an evenly distributed number of observations of each of these classes. According to the exploratory analysis 30% of the responses are low, 42% of the responses are moderate, and only 28% of the responses are high. This class imbalance may result in my models having low predictive power for accurately classifying high and possibly even low risk areas. Stratifying on the risk variable avoids the possibility of a disproportionate amount of high risk observations ending up in the training or testing sets. After stratifying, both the training and testing sets should have the same 30%, 42%, and 28% distribution of each class.
 
 ```{r}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
@@ -437,22 +432,7 @@ load("pandemic_cum.rda")
 set.seed(2002)
 
 pandemic_cum <- pandemic_cum %>%
-  dplyr::select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
-
-pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
-
-pandemic_cum_train <- training(pandemic_cum_split)
-pandemic_cum_test <- testing(pandemic_cum_split)
-```
-
-```{r}
-setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
-load("pandemic_cum.rda")
-
-set.seed(2002)
-
-pandemic_cum <- pandemic_cum %>%
-  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+  dplyr::select(-c("prop", "confirmed_cases", "population", "ID_co"))
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
