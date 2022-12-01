@@ -14,8 +14,8 @@ Here I will be fitting a linear regression model to the Cumulative Log Transform
 Loading necessary libraries
 ```{r}
 library(tidymodels)
-library(ISLR) # For the Smarket data set
-library(ISLR2) # For the Bikeshare data set
+library(ISLR) 
+library(ISLR2) 
 library(discrim)
 library(poissonreg)
 library(corrr)
@@ -28,10 +28,10 @@ Splitting into training and testing
 #setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("pandemic_cum.rda")
 
-set.seed(2002)
+set.seed(30)
 
 pandemic_cum <- pandemic_cum %>%
-  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+  select(-c("prop", "confirmed_cases", "population", "ID_co"))
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
@@ -43,7 +43,8 @@ pandemic_cum_test <- testing(pandemic_cum_split)
 Creating Recipe:
 ```{r}
 pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
-  step_dummy(all_nominal_predictors()) 
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors())
 ```
 
 
@@ -61,7 +62,7 @@ lm_wflow_cum <- workflow() %>%
   add_recipe(pandemic_cum_rec)
 ```
 
-Fit logistic regression model to training data:
+Fit logistic regression model to folded data:
 ```{r}
 log_reg_fit_cum <- fit(lm_wflow_cum, pandemic_cum_train)
 ```
@@ -216,6 +217,53 @@ results %>%
   arrange(-accuracies)
 ```
 
+K-fold Cross Validation:
+```{r}
+pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
+```
+
+
+LDA:
+
+```{r}
+lda_mod <- discrim_linear() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS")
+
+lda_wkflow <- workflow() %>% 
+  add_model(lda_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+lda_fit_cum_folds <- fit_resamples(lda_wkflow, pandemic_folds)
+```
+
+Collect Metrics
+```{r}
+collect_metrics(lda_fit_cum_folds)
+```
+
+QDA:
+
+```{r}
+qda_mod <- discrim_quad() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS")
+
+qda_wkflow <- workflow() %>% 
+  add_model(qda_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+qda_fit_cum_folds <- fit_resamples(qda_wkflow, pandemic_folds)
+```
+
+Collect Metrics:
+```{r}
+collect_metrics(qda_fit_cum_folds)
+```
+
+
+
+
 ## Fitting to Testing Data
 
 Since the QDA model performed slightly better, we'll go ahead and fit it to the testing data. In future weeks, we'll cover how to use cross-validation to try out different values for models' tuning parameters, but for now, this is a general overview of the process.
@@ -236,8 +284,10 @@ We can also look at the **testing** accuracy. Here, we add two other metrics, se
 ```{r}
 multi_metric <- metric_set(accuracy, sensitivity, specificity)
 
-augment(qda_fit_cum, new_data = pandemic_cum_test) %>%
+qda_performance <- augment(qda_fit_cum, new_data = pandemic_cum_test) %>%
   multi_metric(truth = risk, estimate = .pred_class)
+
+qda_performance
 ```
 
 Finally, let's look at an ROC curve on the testing data:
@@ -254,8 +304,9 @@ roc %>%
 
 AUC:
 ```{r}
-roc %>%
+qda_roc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+qda_roc
 ```
 
 
@@ -279,8 +330,10 @@ We can also look at the **testing** accuracy. Here, we add two other metrics, se
 ```{r}
 multi_metric <- metric_set(accuracy, sensitivity, specificity)
 
-augment(lda_fit_cum, new_data = pandemic_cum_test) %>%
+lda_performance <- augment(lda_fit_cum, new_data = pandemic_cum_test) %>%
   multi_metric(truth = risk, estimate = .pred_class)
+
+lda_performance
 ```
 
 Finally, let's look at an ROC curve on the testing data:
@@ -297,12 +350,21 @@ roc %>%
 
 AUC:
 ```{r}
-roc %>%
+lda_roc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+lda_roc
 ```
 
+## Comparing Model Performance
 
+Now we can make a table of the accuracy rates from these two models to choose the model that produced the highest accuracy on the testing data:
 
-
+```{r}
+performance <- c(qda_roc$.estimate, lda_roc$.estimate)
+models <- c("QDA", "LDA")
+results <- tibble(AUC = performance, models = models)
+results %>% 
+  arrange(-performance)
+```
 
 

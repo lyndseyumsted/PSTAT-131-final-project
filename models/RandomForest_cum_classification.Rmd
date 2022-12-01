@@ -49,9 +49,9 @@ Processing the Data
 
 creating the recipe and assigning the steps for processing the data
 ```{r}
-rec <- recipe(risk ~., 
-  data = pandemic_cum_train) %>%   # Formula
-  step_dummy(all_nominal())        # normalize numeric data to have a standard deviation of one.
+pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors())    # normalize numeric data to have a standard deviation of one.
   # %>%step_downsample(Target)                    # all classes should have the same frequency as the minority 
                                                      # class(not needed in our case)
 ```
@@ -60,7 +60,7 @@ Training the recipe data
 ```{r}
 trained_rec <-  prep(rec, training = pandemic_cum_train, retain = TRUE)
 # create the train and test set 
-train_data <- as.data.frame(juice(trained_rec))
+train_data <- as.data.frame(juice(pandemic_cum_rec))
 test_data  <- as.data.frame( bake(trained_rec, new_data = pandemic_cum_test))
 ```
 
@@ -68,7 +68,7 @@ The Model
 
 We will use the {parsnip} function rand_forest() to create a random forest model and add the r-package “ranger” as the computational engine.
 ```{r}
-#setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
 # Build the model (generate the specifications of the model) 
 model_spec_default <- rand_forest(mode = "classification")%>%set_engine("ranger", verbose = TRUE)
 model_spec_default <- randomForest(pandemic_cum_train$risk ~ .,pandemic_cum_train)

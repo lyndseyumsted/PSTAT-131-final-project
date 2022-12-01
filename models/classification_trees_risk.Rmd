@@ -30,12 +30,17 @@ load("pandemic_cum.rda")
 set.seed(2002)
 
 pandemic_cum <- pandemic_cum %>%
-  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+  dplyr::select(-c("prop", "confirmed_cases", "population", "ID_co"))
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
 pandemic_cum_train <- training(pandemic_cum_split)
 pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+K-fold Cross Validation:
+```{r}
+pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
 ```
 
 Fitting classification tree:
@@ -48,11 +53,12 @@ class_tree_spec <- tree_spec %>%
 ```
 
 
-Fit the model:
+Fit the model to the training data:
 ```{r}
 class_tree_fit <- class_tree_spec %>%
   fit(risk ~., data = pandemic_cum_train)
 ```
+
 
 
 Visualize the decision tree:
@@ -99,28 +105,28 @@ To be able to tune the hyperparameter, we need 2 more objects – a resamples ob
 
 ```{r}
 set.seed(3435)
-pandemic_fold <- vfold_cv(pandemic_cum_train)
+pandemic_fold <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)
 
-param_grid <- grid_regular(cost_complexity(range = c(-3, -1)), levels = 10)
+param_grid <- grid_regular(cost_complexity(range = c(-3, 0)), levels = 10)
 
-tune_res <- tune_grid(
+tune_res_st <- tune_grid(
   class_tree_wf, 
   resamples = pandemic_fold, 
   grid = param_grid, 
-  metrics = metric_set(accuracy)
+  metrics = metric_set(roc_auc)
 )
 
 ```
 
-Using autoplot() shows which values of cost_complexity appear to produce the highest accuracy:
+Using autoplot() shows which values of cost_complexity appear to produce the highest roc_auc:
 ```{r}
-autoplot(tune_res)
+autoplot(tune_res_st)
 ```
 
 We can now select the best performing value with select_best(), finalize the workflow by updating the value of cost_complexity, and fit the model on the full training data set.
 
 ```{r}
-best_complexity <- select_best(tune_res)
+best_complexity <- select_best(tune_res_st)
 
 class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
 
@@ -137,8 +143,10 @@ class_tree_final_fit %>%
 
 Accuracy on testing set:
 ```{r}
-augment(class_tree_final_fit, new_data = pandemic_cum_test) %>%
+class_tree_acc <- augment(class_tree_final_fit, new_data = pandemic_cum_test) %>%
   accuracy(truth = risk, estimate = .pred_class)
+
+class_tree_acc
 ```
 
 
@@ -159,8 +167,9 @@ roc %>%
 
 AUC:
 ```{r}
-roc %>%
+single_tree_roc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+single_tree_roc
 ```
 
 Bagging and Random Forest:
@@ -179,18 +188,34 @@ bagging_fit <- fit(bagging_spec, risk ~ .,
 
 testing performance:
 ```{r}
-augment(bagging_fit, new_data = pandemic_cum_test) %>%
+bagged_acc <- augment(bagging_fit, new_data = pandemic_cum_test) %>%
   accuracy(truth = risk, estimate = .pred_class)
+bagged_acc
 ```
 
-
-We can also create a quick scatterplot between the true and predicted values:
+Confusion Matrix:
 ```{r}
 augment(bagging_fit, new_data = pandemic_cum_test) %>%
-  ggplot(aes(risk, .pred_class)) +
-  geom_abline() +
-  geom_point(alpha = 0.5)
+  conf_mat(truth = risk, estimate = .pred_class)
 ```
+
+ROC Curve:
+```{r}
+roc <- augment(bagging_fit, pandemic_cum_test)
+
+roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+```
+
+AUC:
+```{r}
+bagging_roc <- roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+bagging_roc
+```
+
+
 
 Variable Importance:
 ```{r}
@@ -199,27 +224,92 @@ vip(bagging_fit)
 
 looking at the random forest:
 ```{r}
-rf_spec <- rand_forest(mtry = 6) %>%
-  set_engine("randomForest", importance = TRUE) %>%
+rf_spec <- rand_forest(mtry = tune(), trees = tune(), min_n = tune()) %>%
+  set_engine("ranger", importance = "impurity") %>%
   set_mode("classification")
+
+tune_wf <- workflow() %>%
+  add_formula(risk ~ Mean_Tmax + Urban + PovertyRate + MedianFamilyIncome + Traffic + Solid.Waste + Asthma + Low.Birth.Weight + Cardiovascular.Disease + Education + Linguistic.Isolation + Unemployment + under_10_. + Age11_to_64_. + over_65_. + Hispanic_. + White_. + African_Am_. + Asian_Am_. + Native_Am_. + Other_ethnicity_.) %>%
+  add_model(rf_spec)
+
+set.seed(2002)
+pandemic_fold <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)
 ```
 
-and fitting the model like normal:
+Creating a Regular Grid:
 ```{r}
-rf_fit <- fit(rf_spec, risk ~ ., data = pandemic_cum_train)
+rf_grid <- grid_regular(mtry(range = c(2, 20)), trees(range = c(6, 10)), min_n(range = c(3, 5)), levels = 10)
 ```
+
+
+Tuning the model:
+```{r, eval=FALSE}
+tune_res_rf <- tune_grid(
+  tune_wf,
+  resamples = pandemic_fold,
+  grid = rf_grid, 
+  metrics = metric_set(roc_auc)
+)
+
+
+save(tune_res_rf, file = "tune_res_rf.rda")
+```
+
+
+```{r}
+load("tune_res_rf.rda")
+tune_res_rf
+
+autoplot(tune_res_rf)
+```
+
+Selecting best combination of mtry() trees() and min_n()
+
+```{r}
+best <- select_best(tune_res_rf)
+
+rf_final <- finalize_workflow(tune_wf, best)
+
+rf_final_fit <- fit(rf_final, data = pandemic_cum_train)
+```
+
+
 
 accuracy on training:
 ```{r}
-augment(rf_fit, new_data = pandemic_cum_train) %>%
+augment(rf_final_fit, new_data = pandemic_cum_train) %>%
   accuracy(truth = risk, estimate = .pred_class)
 ```
 
 
 accuracy on testing:
 ```{r}
-augment(rf_fit, new_data = pandemic_cum_test) %>%
+rf_acc <- augment(rf_final_fit, new_data = pandemic_cum_test) %>%
   accuracy(truth = risk, estimate = .pred_class)
+rf_acc
+```
+
+
+Confusion Matrix:
+```{r}
+augment(rf_final_fit, new_data = pandemic_cum_test) %>%
+  conf_mat(truth = risk, estimate = .pred_class)
+```
+
+ROC Curve:
+```{r}
+roc <- augment(rf_final_fit, pandemic_cum_test)
+
+roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+```
+
+AUC:
+```{r}
+rf_roc <- roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+rf_roc
 ```
 
 Variable importance:
@@ -228,6 +318,24 @@ vip(rf_fit)
 ```
 
 
+Comparing Model Performance:
+
+Accuracy:
+```{r}
+performance <- c(class_tree_acc$.estimate, bagging_roc$.estimate, rf_acc$.estimate)
+models <- c("Single Decision Tree", "Bagged Tree", "Random Forest")
+results <- tibble(Accuracy = performance, models = models)
+results %>% 
+  arrange(-performance)
+```
 
 
+AUC:
+```{r}
+performance <- c(single_tree_roc$.estimate, bagged_acc$.estimate, rf_roc$.estimate)
+models <- c("Single Decision Tree", "Bagged Tree", "Random Forest")
+results <- tibble(AUC = performance, models = models)
+results %>% 
+  arrange(-performance)
+```
 

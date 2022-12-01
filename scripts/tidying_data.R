@@ -1,4 +1,6 @@
 # reading in data
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
+
 pandemic_weekly_og <- read.csv("data/pandemic_weekly.csv")
 
 # changing naming to shorten
@@ -95,7 +97,7 @@ save(total_cases, file = "visuals/total_cases.rda")
 
 # 1. pandemic_cum
 
-# selecting only week 51 to look at cumulative cases over 
+# dplyr::selecting only week 51 to look at cumulative cases over 
 # the entire year of 2020
 
 # distribution of case counts at 51 weeks excluding any
@@ -117,15 +119,18 @@ pandemic_new_cum <- pandemic_weekly_og %>%
 # that I want
 library(dplyr)
 pandemic_cum_sub <- pandemic_new_cum %>%
-  select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", "PovertyRate", "MedianFamilyIncome", 
+  dplyr::select("ID_co", "confirmed_cases", "population", "Mean_Tmax", "Urban", "PovertyRate", "MedianFamilyIncome", 
          "Traffic", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
          "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
          "Hispanic_.", "White_.", "African_Am_.", "Asian_Am_.", "Native_Am_.", "Other_ethnicity_.")
 
+
 library(finalfit)
 
 # missing values plot
-missing_plot(pandemic_cum_sub)
+getwd()
+og_missing_plot <- missing_plot(pandemic_cum_sub)
+save(og_missing_plot, file = "visuals/og_missing_plot.rda")
 
 # removing any missing values
 pandemic_cum <- pandemic_cum_sub %>%
@@ -144,7 +149,7 @@ str(pandemic_cum)
 #install.packages("corrplot")
 library(corrplot)
 pandemic_cum %>% 
-  select(is.numeric) %>% 
+  dplyr::select(is.numeric) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
            method = 'square')
@@ -204,7 +209,7 @@ pandemic_new_weekly <- pandemic_weekly_og %>%
 # that I want
 library(dplyr)
 pandemic_weekly_sub <- pandemic_new_weekly %>%
-  select("ID_co", "new_cases", "population", "week", "Mean_Tmax", "Urban", 
+  dplyr::select("ID_co", "new_cases", "population", "week", "Mean_Tmax", "Urban", 
          "OHU2010", "PovertyRate", "MedianFamilyIncome", "Ozone", "Diesel.PM", "Drinking.Water", "Pesticides", 
          "Traffic", "Groundwater.Threats", "Haz..Waste", "Solid.Waste", "Asthma", "Low.Birth.Weight", "Cardiovascular.Disease", 
          "Education", "Linguistic.Isolation", "Unemployment", "under_10_.", "Age11_to_64_.", "over_65_.", 
@@ -219,8 +224,6 @@ missing_plot(pandemic_weekly_sub)
 pandemic_weekly <- pandemic_weekly_sub %>%
   na.omit()
 
-missing_plot(pandemic_weekly)
-
 # adjusting some variable types
 # pandemic_weekly$population <- as.numeric(pandemic_weekly$population)
 
@@ -232,7 +235,7 @@ str(pandemic_weekly)
 #install.packages("corrplot")
 library(corrplot)
 pandemic_weekly %>% 
-  select(is.numeric) %>% 
+  dplyr::select(is.numeric) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
            method = 'square')
@@ -318,29 +321,19 @@ summary(pandemic_cum$prop) # median proportion of city with covid
 # or about 4 % (pulled upward by high outliers)
 
 
-# splits at 0.02 and 0.07
+# splits at 0.02 and 0.06
 
 boxplot(pandemic_cum$prop, horizontal = TRUE, main = "Distribution of Proportion of Covid-19 Cases in a Population",
         xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
 
 
-# log transformation
-pandemic_cum$proplog <-log(pandemic_cum$prop)
-
-hist(pandemic_cum$proplog, breaks = 50,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
-     xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
-boxplot(pandemic_cum$proplog, horizontal = TRUE,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
-        xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
-summary(pandemic_cum$proplog)
-
 
 # creating low, moderate, and high categories based on
-# log-transformed data cut by the 1st quartile, IQR,
-# and 4th quartile
+# log-transformed data cut 0.02 and 0.05
 
 pandemic_cum$risk <- 
-  cut(pandemic_cum$proplog, breaks = 
-        c(-12, log(0.02) , log(0.07), 0), 
+  cut(pandemic_cum$prop, breaks = 
+        c(0, 0.02 , 0.05, 1), 
       labels = c("low", "moderate", "high")) # 0.03 and 0.07
 
 # checking
@@ -407,14 +400,15 @@ save(pandemic_weekly, file = "models/pandemic_weekly.rda")
 
 
 pandemic_cum %>% 
-  select(is.numeric) %>% 
+  dplyr::select(is.numeric) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
            method = 'square')
 
 
 pandemic_weekly %>% 
-  select(is.numeric) %>% 
+  dplyr::select(is.numeric) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
            method = 'square')
+

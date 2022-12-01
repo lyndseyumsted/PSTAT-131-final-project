@@ -29,7 +29,7 @@ load("pandemic_cum.rda")
 set.seed(2002)
 
 pandemic_cum <- pandemic_cum %>%
-  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+  select(-c("prop", "confirmed_cases", "population", "ID_co"))
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
@@ -40,7 +40,13 @@ pandemic_cum_test <- testing(pandemic_cum_split)
 Creating Recipe:
 ```{r}
 pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
-  step_dummy(all_nominal_predictors())
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors())
+```
+
+K-fold Cross Validation:
+```{r}
+pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
 ```
 
 KNN Model:
@@ -61,12 +67,24 @@ knn_wflow_cum <- workflow() %>%
   add_recipe(pandemic_cum_rec)
 ```
 
-Fit KNN model to training data:
+Fit KNN model to folded data:
+```{r}
+knn_fit_cum <- fit_resamples(knn_wflow_cum, pandemic_folds)
+```
+
+Collect Metrics
+```{r}
+collect_metrics(knn_fit_cum)
+```
+
+
+Fit model to training data:
 ```{r}
 knn_fit_cum <- fit(knn_wflow_cum, pandemic_cum_train)
 ```
 
-Generating preicted values for each observation of the training set:
+
+Generating predicted values for each observation of the training set:
 ```{r}
 pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_train %>% select(-risk))
 pandemic_cum_knn_pred %>% 
@@ -84,6 +102,8 @@ pandemic_cum_knn_pred %>%
 augment(knn_fit_cum, new_data = pandemic_cum_train) %>%
   conf_mat(truth = risk, estimate = .pred_class)
 ```
+
+Accuracy on Training
 
 ```{r}
 knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_train) %>%
@@ -130,8 +150,9 @@ roc %>%
 
 AUC:
 ```{r}
-roc %>%
+knn_roc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+knn_roc
 ```
 
 

@@ -1,0 +1,116 @@
+---
+title: "Support Vector Machines Model"
+author: "Lyndsey Umsted"
+date: "2022-11-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Loading Packages:
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(ISLR)
+library(kernlab)
+```
+
+Data:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+
+Support Vector Classifier:
+```{r}
+svm_linear_spec <- svm_poly(degree = 1) %>%
+  set_mode("classification") %>%
+  set_engine("kernlab", scaled = FALSE)
+```
+
+Taking the specification, we can add a specific cost of 10 before fitting the model to the data. Using set_args() allows us to set the cost argument without modifying the model specification.
+
+
+```{r}
+svm_linear_fit <- svm_linear_spec %>% 
+  set_args(cost = 10) %>%
+  fit(risk ~ ., data = pandemic_cum_train)
+
+svm_linear_fit
+```
+
+The kernlab models can be visualized using the plot() function if you load the kernlab package:
+
+
+```{r}
+svm_linear_fit <- svm_linear_spec %>% 
+  set_args(cost = 0.1) %>%
+  fit(risk ~ ., data = pandemic_cum_train)
+
+svm_linear_fit
+```
+
+Let us set up a tune_grid() section to find the value of cost that leads to the highest accuracy for the SVM model.
+
+```{r, eval = FALSE}
+svm_linear_wf <- workflow() %>%
+  add_model(svm_linear_spec %>% set_args(cost = tune())) %>%
+  add_formula(risk ~ .)
+
+set.seed(3435)
+pandemic_cum_fold <- vfold_cv(pandemic_cum_train, strata = risk)
+
+param_grid <- grid_regular(cost(), levels = 10)
+
+tune_res <- tune_grid(
+  svm_linear_wf, 
+  resamples = pandemic_cum_fold, 
+  grid = param_grid
+)
+
+save(tune_res, file = "tune_res.rda")
+
+autoplot(tune_res)
+```
+
+
+Using the tune_res object and select_best() function allows us to find the value of cost that gives the best cross-validated accuracy. Finalize the workflow with finalize_workflow() and fit the new workflow on the data set.
+
+```{r}
+load("tune_res.rda")
+tune_res
+
+best_cost <- select_best(tune_res, metric = "accuracy")
+
+svm_linear_final <- finalize_workflow(svm_linear_wf, best_cost)
+
+svm_linear_fit <- svm_linear_final %>% fit(pandemic_cum_train)
+```
+
+Accessing the model on this testing data set shows us that the model still performs well.
+
+```{r}
+augment(svm_linear_fit, new_data = pandemic_cum_test) %>%
+  conf_mat(truth = risk, estimate = .pred_class)
+```
+
+
+
+
+
+

@@ -22,8 +22,8 @@ library(tidyverse)   # using tidyverse and tidymodels for this project mostly
 library(tidymodels)
 library(ggplot2)   # for most of our visualizations
 tidymodels_prefer()
-library(ISLR) # For the Smarket data set
-library(ISLR2) # For the Bikeshare data set
+library(ISLR) 
+library(ISLR2) 
 library(poissonreg)
 library(klaR) # for naive bayes
 library(randomForest)
@@ -96,6 +96,20 @@ dim(pandemic_weekly_og)
 
 This is a very large data set with 270 variables, all of which are not necessary. The variable labeled "confirmed_cases" will be the focus of our predictions. This column contains the cumulative number of positive Covid-19 cases per week in each zip-code during the 2020 year. The data set also contains a variable labeled "new_cases" which contains the new number of positive Covid-19 cases per week during the 2020 year. We can explore these two variables:
 
+#### Missing Values:
+
+```{r}
+load("visuals/og_missing_plot.rda")
+og_missing_plot
+```
+
+As we can see, there are not a lot of missing values in our original data for these variables, thus a solution to the missing values problem is to just remove them from our data:
+
+```{r}
+pandemic_cum <- pandemic_cum_sub %>%
+  na.omit()
+```
+
 #### Cumulative Cases throughout 2020:
 
 ```{r, echo=FALSE}
@@ -141,36 +155,30 @@ hist(pandemic_cum$prop, breaks = 50, main = "Distribution of Proportion of Covid
      xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
 ```
 
-#### Log Transformation:
-
-```{r, echo=FALSE}
-boxplot(pandemic_cum$proplog, horizontal = TRUE,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
-        xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
+```{}
 ```
 
-```{r, echo=FALSE}
-hist(pandemic_cum$proplog, breaks = 50,  main = "Log Distribution of Proportion of Covid-19 Cases in a Population",
-     xlab = "Log Proportion of Covid-19 Cases in a Population", col = "light green")
+```{}
 ```
 
 #### Choosing Splits for Low, Moderate, and High Risk for Covid-19 Outbreak:
 
-As I was choosing a suitable split for what would be considered low, moderate, or high risk I looked for any visible distinctions in the histogram of the proportions distribution. Looking at the histogram of proportions above, I was able to identify a high split at 0.07, or 7%. For the low split, I thought the mode or peak would be a good split which happens to be about 0.02 or 2%. Following this, I then created a variable called "risk" where I classified proportions in each of these intervals into low, moderate, and high risk.
+As I was choosing a suitable split for what would be considered low, moderate, or high risk I researched what is considered a "high" amount of cases. According to the World Health Organization, a 5% positive rate was considered a threshold for reopening stores and businesses during 2020. Thus, any proportions of Covid-19 cases in a population greater than 5% would be classified as high. For the low split, I decided that 2% would be a decent threshold to separate low and moderate risk. Following this, I then created a variable called "risk" where I classified proportions in each of these intervals into low, moderate, and high risk.
 
 ```{r, echo=FALSE}
 # creating low, moderate, and high categories based on
-# log-transformed data cut by log(0.02) and log(0.07)
+# WHO suggestion
 
 pandemic_cum$risk <- 
-  cut(pandemic_cum$proplog, breaks = 
-        c(-12, log(0.02) , log(0.07), 0), 
+  cut(pandemic_cum$prop, breaks = 
+        c(0, 0.02 , 0.05, 1), 
       labels = c("low", "moderate", "high")) # 0.03 and 0.07
 
 # checking class imbalance
 round(prop.table(table(pandemic_cum$risk)), 2)
 ```
 
-There is some class imbalance with only 12% of the observations being categorized as high risk, so all models will be stratified on this variable to avoid any prediction problems.
+There is some class imbalance with only 28% of the observations being categorized as high risk, so all models will be stratified on this variable to avoid any prediction problems.
 
 #### Correlation Between Variables:
 
@@ -265,23 +273,6 @@ pandemic_cum %>%
 
 ```
 
-#### Other Ethnicity:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Other_ethnicity_.") %>%
-  mutate(Other_ethnicity_. = cut(Other_ethnicity_., breaks = 
-                            seq(min(Other_ethnicity_.), max(Other_ethnicity_.), by = 0.25), 
-                          include.lowest = TRUE)) %>%
-  group_by(Other_ethnicity_.) %>%
-  na.omit(Other_ethnicity_.) %>%
-  ggplot(aes(Other_ethnicity_.)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-
-```
-
 #### White:
 
 ```{r, echo=FALSE}
@@ -350,46 +341,12 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-#### Asthma:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Asthma") %>%
-  mutate(Asthma = cut(Asthma, 
-                                  breaks = seq(min(Asthma), 
-                                  max(Asthma), by = 5), 
-                          include.lowest = TRUE)) %>%
-  group_by(Asthma) %>%
-  na.omit(Asthma) %>%
-  ggplot(aes(Asthma)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-#### Low Birth Weight:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Low.Birth.Weight") %>%
-  mutate(Low.Birth.Weight = cut(Low.Birth.Weight, 
-                                  breaks = seq(min(Low.Birth.Weight), 
-                                  max(Low.Birth.Weight), by = 0.25), 
-                          include.lowest = TRUE)) %>%
-  group_by(Low.Birth.Weight) %>%
-  na.omit(Low.Birth.Weight) %>%
-  ggplot(aes(Low.Birth.Weight)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
 #### Cardiovascular Disease:
 
 ```{r, echo=FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Cardiovascular.Disease") %>%
-  mutate(Asian_A_.m_. = cut(Cardiovascular.Disease, 
+  mutate(Cardiovascular.Disease = cut(Cardiovascular.Disease, 
                                   breaks = seq(min(Cardiovascular.Disease), 
                                   max(Cardiovascular.Disease), by = 0.5), 
                           include.lowest = TRUE)) %>%
@@ -418,57 +375,6 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-#### Solid Waste:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Solid.Waste") %>%
-  mutate(Solid.Waste = cut(Solid.Waste, 
-                                  breaks = seq(min(Solid.Waste), 
-                                  max(Solid.Waste), by = 1), 
-                          include.lowest = TRUE)) %>%
-  group_by(Solid.Waste) %>%
-  na.omit(Solid.Waste) %>%
-  ggplot(aes(Solid.Waste)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-#### Asian American:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Asian_Am_.") %>%
-  mutate(Asian_Am_. = cut(Asian_Am_., 
-                                  breaks = seq(min(Asian_Am_.), 
-                                  max(Asian_Am_.), by = 2), 
-                          include.lowest = TRUE)) %>%
-  group_by(Asian_Am_.) %>%
-  na.omit(Asian_Am_.) %>%
-  ggplot(aes(Asian_Am_.)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-#### Urban:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Urban") %>%
-  mutate(Urban = cut(Urban, 
-                                  breaks = seq(min(Urban), 
-                                  max(Urban), by = 0.05), 
-                          include.lowest = TRUE)) %>%
-  group_by(Urban) %>%
-  na.omit(Urban) %>%
-  ggplot(aes(Urban)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
 #### Under 10:
 
 ```{r, echo=FALSE}
@@ -481,23 +387,6 @@ pandemic_cum %>%
   group_by(under_10_.) %>%
   na.omit(under_10_.) %>%
   ggplot(aes(under_10_.)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-#### Between 11 and 64:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Age11_to_64_.") %>%
-  mutate(Age11_to_64_. = cut(Age11_to_64_., 
-                                  breaks = seq(min(Age11_to_64_.), 
-                                  max(Age11_to_64_.), by = 1), 
-                          include.lowest = TRUE)) %>%
-  group_by(Age11_to_64_.) %>%
-  na.omit(Age11_to_64_.) %>%
-  ggplot(aes(Age11_to_64_.)) + 
   geom_bar(aes(fill = risk)) +
   scale_fill_manual(values = c("light blue", "pink", "light green")) +
   theme(axis.text.x = element_text(angle = 90))
@@ -520,9 +409,41 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
+#### Max Temperature:
+
+```{r}
+pandemic_cum %>% 
+  dplyr::select("risk", "Mean_Tmax") %>%
+  mutate(Mean_Tmax = cut(Mean_Tmax, 
+                                  breaks = seq(min(Mean_Tmax), 
+                                  max(Mean_Tmax), by = 0.5), 
+                          include.lowest = TRUE)) %>%
+  group_by(Mean_Tmax) %>%
+  na.omit(Mean_Tmax) %>%
+  ggplot(aes(Mean_Tmax)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
 ## Data Splitting:
 
-When fitting the pandemic data to my machine learning models, I need to split the data into a training and testing/validation set. This allows the models to be trained on a random subset of the data in order to build predictions. Once trained on the training set, each of the models are then used to create predictions on the testing/validation set in order to get a measure of the models' accuracies for making predictions on new data. The training and testing validation approach gives us an estimate on how the models will perform on new data the models haven't seen yet. In order to split my data into training and testing sets I used a random seed and I have decided to make the proportion of split 70% for the training data and 30% for the testing data. Another important factor in splitting the data is identifying what to stratify the split on, which in my case is the response variable "risk". As seen in the exploratory analysis, my response variable "risk" is divided into three categories or classes: low, moderate, and high, however there is not an evenly distributed number of observations of each of these classes. According to the exploratory analysis 38% of the responses are low, 50% of the responses are moderate, and only 12% of the responses are high. This class imbalance may result in my models having low predictive power for accurately classifying high and possibly even low risk areas. Stratifying on the risk variable avoids the possibility of a disproportionate amount of high risk observations ending up in the training or testing sets. After stratifying, both the training and testing sets should have the same 38%, 50%, and 12% distribution of each class.
+When fitting the pandemic data to my machine learning models, I need to split the data into a training and testing/validation set. This allows the models to be trained on a random subset of the data in order to build predictions. Once trained on the training set, each of the models are then used to create predictions on the testing/validation set in order to get a measure of the models' accuracies for making predictions on new data. The training and testing validation approach gives us an estimate on how the models will perform on new data the models haven't seen yet. In order to split my data into training and testing sets I used a random seed and I have decided to make the proportion of split 70% for the training data and 30% for the testing data. Another important factor in splitting the data is identifying what to stratify the split on, which in my case is the response variable "risk". As seen in the exploratory analysis, my response variable "risk" is divided into three categories or classes: low, moderate, and high, however there is not an evenly distributed number of observations of each of these classes. According to the exploratory analysis 30% of the responses are low, 42% of the responses are moderate, and only 28% of the responses are high. This class imbalance may result in my models having low predictive power for accurately classifying high and possibly even low risk areas. Stratifying on the risk variable avoids the possibility of a disproportionate amount of high risk observations ending up in the training or testing sets. After stratifying, both the training and testing sets should have the same 30%, 42%, and 28% distribution of each class.
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  dplyr::select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
 
 ```{r}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
@@ -539,4 +460,24 @@ pandemic_cum_train <- training(pandemic_cum_split)
 pandemic_cum_test <- testing(pandemic_cum_split)
 ```
 
-### Cross Validation:
+### K-Fold Cross Validation:
+
+Here we are going to use k-fold cross validation in order to estimate the accuracy of each of our models on new data and in order to tune the models. The folds will also be stratified on the outcome variable risk in order to handle the data imbalance. Cross Validation is better at estimating how well our models will perform on new data than a single validation set because it assesses the performance on multiple folds of the data, therefore validating on different combinations of the data and taking into account the variation present in the data.
+
+```{r}
+pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
+```
+
+### Recipe:
+
+The recipe for each of my models will use all 21 predictor variables outlined in the introduction along with step codes used to center and scale each of the numerical variables in order to have better performance.
+
+```{r}
+pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors())
+```
+
+# Machine Learning Models
+
+In order to make predictions to classify areas into low, moderate, or high risk for Covid-19, I will build and deploy 7 machine learning models each using the same recipe as seen above.
