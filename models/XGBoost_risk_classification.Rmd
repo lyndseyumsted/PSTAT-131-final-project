@@ -49,7 +49,7 @@ load("pandemic_cum.rda")
 set.seed(2002)
 
 pandemic_cum <- pandemic_cum %>%
-  select(-c("prop", "confirmed_cases", "population", "ID_co", "proplog"))
+  select(-c("prop", "confirmed_cases", "population"))
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
@@ -57,11 +57,11 @@ pandemic_cum_train <- training(pandemic_cum_split)
 pandemic_cum_test <- testing(pandemic_cum_split)
 
 
-x_train <- as.matrix(pandemic_cum_train[,-22])
-x_test <- as.matrix(pandemic_cum_test[,-22])
+x_train <- as.matrix(pandemic_cum_train[,-1])
+x_test <- as.matrix(pandemic_cum_test[,-1])
 
-y_train <- (as.numeric(pandemic_cum_train$risk) - 1)
-y_test <- (as.numeric(pandemic_cum_test$risk) - 1)
+y_train <- as.matrix(as.numeric(pandemic_cum_train[,-1]$risk) - 1)
+y_test <- as.matrix(as.numeric(pandemic_cum_test[,-1]$risk) - 1)
 
 # y_train <- to_categorical(y_train)
 # y_test <- to_categorical(y_test)
@@ -167,17 +167,17 @@ xgb.plot.importance(importance_matrix = mat[1:nrow(mat)])
 
 ```{r}
 # #convert characters to factors
-fact_col <- colnames(pandemic_cum_train)
+fact_col <- colnames(pandemic_cum_train[,-1])
 
-pandemic_cum_train$risk <- as.factor(pandemic_cum_train$risk)
-pandemic_cum_test$risk <- as.factor(pandemic_cum_test$risk)
+pandemic_cum_train[,-1]$risk <- as.factor(pandemic_cum_train[,-1]$risk)
+pandemic_cum_test[,-1]$risk <- as.factor(pandemic_cum_test[,-1]$risk)
 
 #install.packages("mlr")
 library(mlr)
 
 # Create tasks
-traintask <- makeClassifTask(data = pandemic_cum_train, target = "risk")
-testtask <- makeClassifTask(data = pandemic_cum_test, target = "risk")
+traintask <- makeClassifTask(data = pandemic_cum_train[,-1], target = "risk")
+testtask <- makeClassifTask(data = pandemic_cum_test[,-1], target = "risk")
 
 #do one hot encoding`<br/>
 # traintask <- createDummyFeatures(obj = traintask, target = character(0L))

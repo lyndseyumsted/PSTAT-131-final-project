@@ -1,9 +1,10 @@
 ---
-title: "Building a Predictive Model on Covid-19 Cases"
+title: "Building a Predictive Model on Covid-19 Risk"
 subtitle: "Using Machine Learning Models to Predict Covid-19 Outbreak Risk in Californian Cities"
 author: "Lyndsey Umsted"
 format: html
 editor: visual
+toc: true
 ---
 
 # Introduction
@@ -27,6 +28,8 @@ library(ISLR2)
 library(poissonreg)
 library(klaR) # for naive bayes
 library(randomForest)
+library(vip)
+library(dplyr)
 ```
 
 ## What is Covid-19?
@@ -142,7 +145,7 @@ gg_new
 
 Here we can see that there was a rise in cases around weeks 26 to 35 which are the months June through August and then there is another spike following week 46 which is about halfway through November to the rest of the year right around the winter holidays.
 
-## Converting Cumulative Cases into Proportions of Population for a Classification Model
+### Converting Cumulative Cases into Proportions of Population for a Classification Model
 
 My initial plan for this project was to build a regression model which predicted continuous case counts by the end of 2020 for each zip code. However, I decided to take this a step further and build a classification model which categorized zip codes into low, moderate, or high risk for a Covid-19 outbreak. Covid-19 cumulative case numbers are highly positively correlated with population so I decided to make a new column in the data set of the proportion of a population which has tested positive for Covid-19 by the end of the year 2020.
 
@@ -175,14 +178,14 @@ round(prop.table(table(pandemic_cum$risk)), 2)
 
 There is some class imbalance with only 28% of the observations being categorized as high risk, and only 30% considered low risk, so all models will be stratified on this variable to avoid any prediction problems.
 
-#### Correlation Between Variables:
+### Correlation Between Variables:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 load("models/pandemic_cum.rda")
 library(corrplot)
 pandemic_cum %>% 
   dplyr::select(-c(prop)) %>%
-  dplyr::select(is.numeric) %>% 
+  dplyr::select(where(is.numeric)) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
            method = 'square')
@@ -202,6 +205,8 @@ load("visuals/pov_asthma_gg.rda")
 pov_asthma_gg
 ```
 
+Looking at these box plots and scatter plots of the relationship between Poverty Rate and Asthma, there appears to be a positive correlation between the two variables. Communities with a higher poverty rate tend to have more asthma-related emergency room visits.
+
 #### Mean Low Birth Weight and Poverty Rate
 
 ```{r, echo=FALSE}
@@ -213,6 +218,8 @@ pov_low_birth_boxplot
 load("visuals/pov_low_birth_gg.rda")
 pov_low_birth_gg
 ```
+
+Looking at these box plots and scatter plots of the relationship between Poverty Rate and Low Birth Weight, there appears to be a positive correlation between the two variables. Communities with a higher poverty rate tend to have higher rates of low birth weight.
 
 #### Mean Cardiovascular Disease and Poverty Rate:
 
@@ -226,12 +233,7 @@ load("visuals/pov_cardio_gg.rda")
 pov_cardio_gg
 ```
 
-#### Variable Importance:
-
-```{r, echo=FALSE}
-load("visuals/var_imp_plot.rda")
-varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Under Random Forest Model")
-```
+Looking at these box plots and scatter plots of the relationship between Poverty Rate and Low Birth Weight, there appears to be a positive correlation between the two variables. Communities with a higher poverty rate tend to have more heart-related emergency room visits. Interestingly, this trend seems to level out when the poverty rate goes past 25%.
 
 ### Distribution of Risk Levels for Different Predictor Variables:
 
@@ -241,7 +243,7 @@ varImpPlot(model_spec_default, cex = 1, pch = 16, main = "Variable Importance Un
 pandemic_cum %>% 
   dplyr::select("risk", "Hispanic_.") %>%
   mutate(Hispanic_. = cut(Hispanic_., breaks = 
-                            seq(min(Hispanic_.), max(Hispanic_.), by = 5), 
+                            seq(min(Hispanic_.), max(Hispanic_.), by = 2.5), 
                           include.lowest = TRUE)) %>%
   group_by(Hispanic_.) %>%
   na.omit(Hispanic_.) %>%
@@ -251,26 +253,11 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-#### Education:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Education") %>%
-  mutate(Education = cut(Education, breaks = 
-                            seq(min(Education), max(Education), by = 2), 
-                          include.lowest = TRUE)) %>%
-  group_by(Education) %>%
-  na.omit(Education) %>%
-  ggplot(aes(Education)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-
-```
+Looking at the distribution of Hispanic makeup in Californian communities, there looks to be a correlation between high risk levels of Covid-19 outbreaks in communities with a higher proportion of Hispanics. Communities with lower proportions of Hispanic people tend to be at a moderate or low risk for a Covid-19 outbreak.
 
 #### White:
 
-```{r, echo=FALSE}
+```{r, echo = FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "White_.") %>%
   mutate(White_. = cut(White_., breaks = 
@@ -284,23 +271,26 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-#### Linguistic Isolation:
+Looking at the distribution of White makeup in Californian communities, there looks to be a correlation between high lower levels of Covid-19 outbreaks in communities with a higher proportion of White people. Communities with lower proportions of White people tend to have a higher risk for a Covid-19 outbreak.
+
+#### Education:
 
 ```{r, echo=FALSE}
 pandemic_cum %>% 
-  dplyr::select("risk", "Linguistic.Isolation") %>%
-  mutate(Linguistic.Isolation = 
-           cut(Linguistic.Isolation, 
-               breaks = seq(min(Linguistic.Isolation), 
-                            max(Linguistic.Isolation), by = 1), 
+  dplyr::select("risk", "Education") %>%
+  mutate(Education = cut(Education, breaks = 
+                            seq(min(Education), max(Education), by = 1.5), 
                           include.lowest = TRUE)) %>%
-  group_by(Linguistic.Isolation) %>%
-  na.omit(Linguistic.Isolation) %>%
-  ggplot(aes(Linguistic.Isolation)) + 
+  group_by(Education) %>%
+  na.omit(Education) %>%
+  ggplot(aes(Education)) + 
   geom_bar(aes(fill = risk)) +
   scale_fill_manual(values = c("light blue", "pink", "light green")) +
   theme(axis.text.x = element_text(angle = 90))
+
 ```
+
+Looking at the distribution of adults without high school degrees in Californian communities, there looks to be a correlation between high risk levels of Covid-19 outbreaks in communities with a higher proportion of adults without a high school degree. Communities with more educated adults tend to be at a moderate or low risk for a Covid-19 outbreak.
 
 #### Median Family Income:
 
@@ -319,22 +309,7 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-#### Poverty Rate:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "PovertyRate") %>%
-  mutate(PovertyRate = cut(PovertyRate, 
-                                  breaks = seq(min(PovertyRate), 
-                                  max(PovertyRate), by = 1), 
-                          include.lowest = TRUE)) %>%
-  group_by(PovertyRate) %>%
-  na.omit(PovertyRate) %>%
-  ggplot(aes(PovertyRate)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
+Looking at the distribution of Median Family Income in Californian communities, there looks to be a correlation between high risk levels of Covid-19 outbreaks in communities with lower median family incomes. Communities with higher median family incomes tend to be at a moderate or low risk for a Covid-19 outbreak.
 
 #### Cardiovascular Disease:
 
@@ -353,6 +328,8 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
+Looking at the distribution of heart-related emergency room visits in Californian communities, there looks to be a slight correlation between high risk levels of Covid-19 outbreaks in communities with more heart-related emergency room visits. Communities with less heart-related mergency room visits tend to be at a moderate or lower risk for a Covid-19 outbreak.
+
 #### Unemployment:
 
 ```{r, echo=FALSE}
@@ -360,7 +337,7 @@ pandemic_cum %>%
   dplyr::select("risk", "Unemployment") %>%
   mutate(Unemployment = cut(Unemployment, 
                                   breaks = seq(min(Unemployment), 
-                                  max(Unemployment), by = 1), 
+                                  max(Unemployment), by = 0.5), 
                           include.lowest = TRUE)) %>%
   group_by(Unemployment) %>%
   na.omit(Unemployment) %>%
@@ -370,56 +347,7 @@ pandemic_cum %>%
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-#### Under 10:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "under_10_.") %>%
-  mutate(under_10_. = cut(under_10_., 
-                                  breaks = seq(min(under_10_.), 
-                                  max(under_10_.), by = 1), 
-                          include.lowest = TRUE)) %>%
-  group_by(under_10_.) %>%
-  na.omit(under_10_.) %>%
-  ggplot(aes(under_10_.)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-#### Over 65:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "over_65_.") %>%
-  mutate(over_65_. = cut(over_65_., 
-                                  breaks = seq(min(over_65_.), 
-                                  max(over_65_.), by = 1), 
-                          include.lowest = TRUE)) %>%
-  group_by(over_65_.) %>%
-  na.omit(over_65_.) %>%
-  ggplot(aes(over_65_.)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-#### Max Temperature:
-
-```{r, echo=FALSE}
-pandemic_cum %>% 
-  dplyr::select("risk", "Mean_Tmax") %>%
-  mutate(Mean_Tmax = cut(Mean_Tmax, 
-                                  breaks = seq(min(Mean_Tmax), 
-                                  max(Mean_Tmax), by = 0.5), 
-                          include.lowest = TRUE)) %>%
-  group_by(Mean_Tmax) %>%
-  na.omit(Mean_Tmax) %>%
-  ggplot(aes(Mean_Tmax)) + 
-  geom_bar(aes(fill = risk)) +
-  scale_fill_manual(values = c("light blue", "pink", "light green")) +
-  theme(axis.text.x = element_text(angle = 90))
-```
+Looking at the distribution of Unemployment in Californian communities, there looks to be a correlation between high risk levels of Covid-19 outbreaks in communities with a higher proportion of unemployment. Communities with lower unemployment rates tend to be at a moderate or low risk for a Covid-19 outbreak.
 
 ## Data Splitting:
 
@@ -460,4 +388,689 @@ pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
 
 # Machine Learning Models
 
-In order to make predictions to classify areas into low, moderate, or high risk for Covid-19, I will build and deploy 7 machine learning models each using the same recipe as seen above.
+```{r, echo = FALSE}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("lda_acc.rda")
+load("qda_acc.rda")
+load("nb_acc.rda")
+load("lda_auc.rda")
+load("qda_auc.rda")
+load("nb_auc.rda")
+load("knn_acc.rda")
+load("knn_auc.rda")
+load("single_tree_acc.rda")
+load("single_tree_auc.rda")
+load("bagged_acc.rda")
+load("bag_auc.rda")
+load("rf_acc.rda")
+load("rf_auc.rda")
+load("xgb_acc.rda")
+load("xgb_auc.rda")
+load("elastic_acc.rda")
+load("elastic_auc.rda")
+```
+
+In order to make predictions to classify areas into low, moderate, or high risk for Covid-19, I will build and deploy 9 machine learning models each using the same recipe as seen above. For each of these models I will train them on the training sets. Each model will be tuned using the folded data from the k-fold cross validation. The code used to preprocess the data and build and run each of the models can be found in their respective R markdown files. The following is a description of each of the models used in this project.
+
+1.  `Linear Discriminant Analysis (LDA)`: LDA is a linear method in supervised learning and is a dimensionality reduction technique that works well in multi-class classification problems like the one in this project. LDA looks for linear combinations of the predictor variables in order to create decision boundaries for the response variable. LDA assumes a common covariance matrix for each class of the response variable.
+
+2.  `Quadratic Discriminant Analysis (QDA)`: QDA is similar to LDA in that they are both methods in supervised learning that work well in multi-class classification problems. However, unlike LDA, QDA assumes that each class has its own covariance matrix and cannot be used as a dimensionality reduction technique. QDA tends to be more flexible and has more parameters to estimate.
+
+    Below is a visualization of the differences of LDA and QDA classifiers:
+
+    ![](https://scikit-learn.org/stable/_images/sphx_glr_plot_lda_qda_001.png)
+
+3.  `Naive Bayes Classifier`: A Naive Bayes Classifier is a probabilistic classifier which uses Bayes' theorem with strong independence assumptions between the features (or predictor variables).
+
+    Bayes' theorem:
+
+    ![](images/paste-30F315B4.png)
+
+4.  `K Nearest Neighbors (KNN)`: The k-nearest neighbors algorithm is a classification method which estimates the likelihood an observation will become a member of a specific response class dependent on which group the k observations nearest to it belong to.
+
+    Below is a simple visualization of how the algorithm works with two classes.
+
+    ![](https://www.jcchouinard.com/wp-content/uploads/2021/08/image-8.png)
+
+5.  `Single Classification Decision Tree`: A single classification decision tree is one tree method which uses a tree structure with a root node, decision nodes, and leaf nodes (predicted classes) to classify an observation based on values of the predictor variables. The algorithm partitions the data set into subsets which contain instances with similar values.
+
+    Below is a visualization of how a classification decision tree works:
+
+    ![](https://static.javatpoint.com/tutorial/machine-learning/images/decision-tree-classification-algorithm.png)
+
+6.  `Bootstrap Aggregated Decision Tree (Bagged Tree)`: A bagged tree is a classification decision tree ensemble method. Multiple decision tree models are used when making predictions. In this algorithm, randomly sampled subsets of the data are created with replacement and are each trained on a single decision tree, then predictions are averaged among each decision tree to output final predictions.
+
+    Below is a visualization of how bootstrap aggregation works:
+
+    ![](https://www.researchgate.net/publication/349624596/figure/fig1/AS:995408276889600@1614335235062/Bootstrap-aggregation-bagging-in-regression-tree-ensembles.png)
+
+7.  Random Forest: Random Forest is another ensemble method which uses multiple classification decision trees and bootstrap aggregation to make predictions. Random Forest is an extension of bagging in that it also randomly selects a certain number of features in each data subset. Random Forest works to minimize variance and overfitting of the data.
+
+    Below is a visualization of how a random forest model works:
+
+    ![](https://upload.wikimedia.org/wikipedia/commons/7/76/Random_forest_diagram_complete.png)
+
+8.  `Extreme Gradient Boosted Tree (XGBoost)`: XGBoost is another decision tree ensemble learning algorithm which uses multiple decision trees to make classification predictions. The difference between random forest and XGBoost however is that XGBoost uses gradient boosting where the process of additively generating weak models is formalized as a gradient descent algorithm. Gradient boosting has targeted outcomes for the next decision tree in order to improve accuracy. Targeted outcomes for each case are based on the gradient of the error with respect to the prediction. The final prediction is a weighted sum of all of the tree predictions. XGBoost works to minimize bias and underfitting of the data.
+
+    Below is a visualization of how XGBoost works: ![](https://media.geeksforgeeks.org/wp-content/uploads/20210707140911/Boosting.png)
+
+9.  `Elastic-Net Regression`: Elastic-Net Regression is a regularized regression method which linearly combines the penalties of lasso and ridge regression methods. The parameters associated with correlated variables are grouped and their coefficients are shrunk toward zero (relative to least squares) and used in a regression equation to predict the class outcomes.
+
+    Below is a visualization of how Lasso and Ridge Regularization work:
+
+    ![](https://miro.medium.com/max/1058/1*Jd03Hyt2bpEv1r7UijLlpg.png)
+
+After assessing the performance of each of these models, I will compare their performances evaluated on the Area Under the Receiver Operating Characteristic Curve (ROC AUC) because this metric is a better assessment of imbalanced data than accuracy is.
+
+### Linear Discriminant Analysis:
+
+The first model I trained was a Linear Discriminant Analysis model. Here is how I fit the model and used cross-validation to assess its performance:
+
+```{r, eval = FALSE}
+# specifying an LDA model using MASS engine and classification mode
+lda_mod <- discrim_linear() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS")
+
+# adding model to workflow
+lda_wkflow <- workflow() %>% 
+  add_model(lda_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+# fit model to folds
+lda_fit_cum_folds <- fit_resamples(lda_wkflow, pandemic_folds)
+```
+
+Performance Across Folds
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("lda_fit_cum_folds.rda")
+
+# look how the model performed across the folds
+collect_metrics(lda_fit_cum_folds)
+```
+
+I then fit the LDA model to the entire training set and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+lda_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+lda_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/lda_roc.rda")
+lda_roc
+```
+
+### Quadratic Discriminant Analysis:
+
+The second model I trained was a Quadratic Discriminant Analysis model. Here is how I fit the model and used cross-validation to assess its performance:
+
+```{r, eval = FALSE}
+# specifying an QDA model using MASS engine and classification mode
+qda_mod <- discrim_quad() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS")
+
+# adding model to workflow
+qda_wkflow <- workflow() %>% 
+  add_model(qda_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+# fit model to folds
+qda_fit_cum_folds <- fit_resamples(qda_wkflow, pandemic_folds)
+```
+
+Performance Across Folds
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("qda_fit_cum_folds.rda")
+
+# look how the model performed across the folds
+collect_metrics(qda_fit_cum_folds)
+```
+
+I then fit the QDA model to the entire training set and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+qda_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+qda_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/qda_roc.rda")
+qda_roc
+```
+
+### Naive Bayes:
+
+The third model I trained was a Naive Bayes Classifier. Here is how I fit the model and used cross-validation to assess its performance:
+
+```{r, eval = FALSE}
+#specifying naive bayes model using klaR engine and classification mode
+nb_mod <- naive_Bayes() %>% 
+  set_mode("classification") %>% 
+  set_engine("klaR") %>% 
+  set_args(usekernel = FALSE) 
+
+# adding model to workflow
+nb_wkflow <- workflow() %>% 
+  add_model(nb_mod) %>% 
+  add_recipe(pandemic_cum_rec)
+
+# fit model to folds
+nb_fit_folds <- fit_resamples(nb_wkflow, pandemic_folds)
+```
+
+Performance Across Folds
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("nb_fit_folds.rda")
+
+# look how the model performed across the folds
+collect_metrics(nb_fit_folds)
+```
+
+I then fit the Naive Bayes model to the entire training set and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+nb_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+nb_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/nb_roc.rda")
+nb_roc
+```
+
+### K-Nearest Neighbors:
+
+The fourth model I trained was a K-Nearest Neighbors model. Here is how I fit the model and used cross-validation to assess its performance:
+
+```{r, eval = FALSE}
+# specifying knn model using kknn engine, classification mode, rectangular weight function, and neighbors
+knn_model <- nearest_neighbor(
+  mode = "classification",
+  engine = "kknn", 
+  neighbors = 10,
+  weight_func = "rectangular", 
+  dist_power = NULL
+)
+
+# adding model to workflow
+knn_wflow_cum <- workflow() %>% 
+  add_model(knn_model) %>% 
+  add_recipe(pandemic_cum_rec)
+
+# fit model to folds
+knn_fit_cum_folds <- fit_resamples(knn_wflow_cum, pandemic_folds)
+```
+
+Performance Across Folds
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("knn_fit_cum_folds.rda")
+
+# look how the model performed across the folds
+collect_metrics(knn_fit_cum_folds)
+```
+
+I then fit the K-Nearest Neighbor model to the entire training set and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+knn_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+knn_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/knn_roc.rda")
+knn_roc
+```
+
+### Single Decision Tree:
+
+The fifth model I trained was a Single Decision Tree. Here is how I fit the model and used cross-validation to tune the cost_complexity() parameter:
+
+```{r, eval = FALSE}
+# specifying decision tree model using rpart engine and classification mode
+tree_spec <- decision_tree() %>%
+  set_engine("rpart")
+
+class_tree_spec <- tree_spec %>%
+  set_mode("classification")
+
+# adding model to workflow and tuning cost_complexity
+class_tree_wf <- workflow() %>%
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
+  add_recipe(pandemic_cum_rec)
+
+
+# parameter search grid
+param_grid <- grid_regular(cost_complexity(range = c(-3, 0)), levels = 10)
+
+# specifying roc_auc metric and folds
+tune_res_st <- tune_grid(
+  class_tree_wf, 
+  resamples = pandemic_folds, 
+  grid = param_grid, 
+  metrics = metric_set(roc_auc)
+)
+```
+
+Performance on different Cost Complexity levels:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("cost_plot.rda")
+
+cost_plot
+```
+
+Looking at Visualization of Decision Tree:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("class_tree_final_fit.rda")
+library(rpart.plot)
+class_tree_final_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+```
+
+I then fit the Single Decision Tree model to the entire training set using the best cost complexity parameter and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+single_tree_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+single_tree_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/single_tree_roc.rda")
+single_tree_roc
+```
+
+### Bootstrap Aggregated Tree:
+
+The sixth model I trained was a Bootstrap Aggregated (Bagged) Decision Tree. Here is how I fit the model and used cross-validation to tune the cost_complexity() parameter:
+
+```{r, eval = FALSE}
+# specifying decision tree model using randomForest engine and classification mode
+bagging_spec <- rand_forest(mtry = .cols()) %>%
+  set_engine("randomForest", importance = TRUE) %>%
+  set_mode("classification")
+
+# adding model to workflow and tuning cost_complexity
+bag_wf <- workflow() %>%
+  add_model(bagging_spec %>% set_args(cost_complexity = tune())) %>%
+  add_recipe(pandemic_cum_rec)
+
+# parameter search grid
+param_grid <- grid_regular(cost_complexity(range = c(-3, 0)), levels = 10)
+
+# specifying roc_auc metric and folds
+tune_res_bag <- tune_grid(
+  bag_wf, 
+  resamples = pandemic_folds, 
+  grid = param_grid, 
+  metrics = metric_set(roc_auc)
+)
+```
+
+We can look at the bagged tree Variable Importance Plot:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("bag_final_fit.rda")
+
+bag_final_fit %>%
+  extract_fit_parsnip() %>%
+  vip()
+```
+
+For the Bagged Tree model, the top three most important predictor variables were Hispanic\_., Cardiovascular.Disease, and Mean_Tmax.
+
+I then fit the Bagged Tree model to the entire training set using the best cost complexity parameter and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+bagged_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+bag_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/bag_roc.rda")
+bag_roc
+```
+
+### Random Forest:
+
+The seventh model I trained was a Random Forest. Here is how I fit the model and used cross-validation to tune the mtry(), trees(), and min_n() parameters:
+
+```{r, eval = FALSE}
+# specifying random forest model using ranger engine and classification mode. Also identifying which parameters to tune
+rf_spec <- rand_forest(mtry = tune(), trees = tune(), min_n = tune()) %>%
+  set_engine("ranger", importance = "impurity") %>%
+  set_mode("classification")
+
+# adding model to workflow
+tune_wf <- workflow() %>%
+  add_recipe(pandemic_cum_rec) %>%
+  add_model(rf_spec)
+
+# parameter search grid
+rf_grid <- grid_regular(mtry(range = c(2, 21)), trees(range = c(6, 10)), min_n(range = c(3, 5)), levels = 10)
+
+# specifying roc_auc metric and folds
+set.seed(2002)
+
+tune_res_rf <- tune_grid(
+  tune_wf,
+  resamples = pandemic_folds,
+  grid = rf_grid, 
+  metrics = metric_set(roc_auc)
+)
+```
+
+Performance on different Cost Complexity levels:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("rf_plot.rda")
+
+rf_plot
+```
+
+We can look at the Random Forest Variable Importance Plot:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("rf_final_fit.rda")
+
+rf_final_fit %>%
+  extract_fit_parsnip() %>%
+  vip()
+```
+
+For the Random Forest model, the top three most important predictor variables were Hispanic\_., Education, and Unemployment.
+
+I then fit the Random Forest model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+rf_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+rf_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/rf_roc.rda")
+rf_roc
+```
+
+### Extreme Gradient Boosting:
+
+The eighth model I trained was an XGBoost model. Here is how I fit the model and used cross-validation to tune the mtry(), trees(), and min_n() parameters:
+
+```{r, eval = FALSE}
+# specifying XGBoost model usingxgboost engine and classification mode. Also identifying which parameters to tune
+xgb_spec <-
+  boost_tree(
+    mtry = tune(),
+    trees = tune(),
+    min_n = tune()
+  ) %>%
+  set_engine('xgboost') %>%
+  set_mode('classification')
+
+# adding model to workflow
+xgb_wflow <-
+  workflow() %>%
+  add_recipe(pandemic_cum_rec) %>%
+  add_model(xgb_spec)
+
+# parameter search grid
+xgb_grid <- grid_regular(mtry(range = c(2, 21)), trees(range = c(6, 10)), min_n(range = c(3, 5)), levels = 8)
+
+# specifying roc_auc metric and folds
+set.seed(2002)
+xgb_res <-
+  tune_grid(
+    xgb_wflow,
+    resamples = pandemic_folds,
+    grid = xgb_grid,
+    metrics = metric_set(roc_auc)
+  )
+```
+
+Performance on different parameter levels:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("xgb_plot.rda")
+
+xgb_plot
+```
+
+We can look at the XGBoost Variable Importance Plot:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("xgb_final_fit.rda")
+
+xgb_final_fit %>%
+  extract_fit_parsnip() %>%
+  vip()
+```
+
+For the XGBoost model, the top three most important predictor variables were Education, Hispanic\_., and White\_..
+
+I then fit the XGBoost model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+xgb_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+xgb_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/xgb_roc.rda")
+rf_roc
+```
+
+### Elastic-Net Regression:
+
+The ninth model I trained was an Elastic-Net Regression model. Here is how I fit the model and used cross-validation to tune the penalty() and mixture() parameters.
+
+```{r, eval = FALSE}
+# specifying multinomial regression model using glmnet engine and classification mode. Also identifying which parameters to tune
+elastic_spec <- 
+  multinom_reg(penalty = tune(), mixture = tune()) %>% 
+  set_mode("classification") %>% 
+  set_engine("glmnet")
+
+# adding model to workflow
+elastic_workflow <- workflow() %>% 
+  add_recipe(pandemic_cum_rec) %>% 
+  add_model(elastic_spec)
+
+# parameter search grid
+penalty_grid <- grid_regular(penalty(range = c(-6, 6)), mixture(range = c(0,1)), levels = 15)
+
+# specifying roc_auc metric and folds
+set.seed(2002)
+tune_res_elastic <- tune_grid(
+  elastic_workflow,
+  resamples = pandemic_folds, 
+  grid = penalty_grid
+)
+```
+
+Performance on different parameter levels:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("elastic_plot.rda")
+
+elastic_plot
+```
+
+I then fit the Elastic-Net Regression model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
+
+Accuracy:
+
+```{r}
+elastic_acc
+```
+
+Area Under the ROC Curve:
+
+```{r}
+elastic_auc
+```
+
+ROC Curve for each Class:
+
+```{r}
+load("models/elastic_roc.rda")
+elastic_roc
+```
+
+## Comparing Model Performance
+
+Now I would like to compare the performance of each of my models based on their Accuracy and AUC, however the model I choose as my best will be based only on the AUC performance.
+
+#### Model Accuracy:
+
+```{r, echo = FALSE}
+performance <- c(single_tree_acc$.estimate, bagged_acc$.estimate, rf_acc$.estimate, lda_acc$.estimate, qda_acc$.estimate,nb_acc$.estimate, knn_acc$.estimate, xgb_acc$.estimate, elastic_acc$.estimate)
+models <- c("Single Decision Tree", "Bagged Tree", "Random Forest", "LDA", "QDA", "Naive Bayes", "KNN", "XGBoost", "Elastic-Net Regression")
+acc_results <- tibble(Accuracy = performance, models = models)
+acc_results %>% 
+  arrange(-performance) %>%
+  as.data.frame()
+
+```
+
+The Elastic-Net Regression model had the highest accuracy of 0.75862 followed by Quadratic Discriminant Analysis with an accuracy of 0.72855, Linear Discriminant Analysis with an accuracy of 0.71552, and Bagged Tree with an accuracy of 0.71551.
+
+#### Model Area Under the Receiver Operator Characteristic Curve:
+
+```{r, echo = FALSE}
+performance <- c(single_tree_auc$.estimate, bag_auc$.estimate, rf_auc$.estimate, lda_auc$.estimate, qda_auc$.estimate, nb_auc$.estimate, knn_auc$.estimate, xgb_auc$.estimate, elastic_auc$.estimate)
+models <- c("Single Decision Tree", "Bagged Tree", "Random Forest", "LDA", "QDA", "Naive Bayes", "KNN", "XGBoost", "Elastic-Net Regression")
+auc_results <- tibble(AUC = performance, models = models)
+auc_results %>% 
+  arrange(-performance) %>%
+  as.data.frame()
+```
+
+#### Bar Plot of Model ROC AUC:
+
+```{r, echo = FALSE}
+load("visuals/performance_bar.rda")
+performance_bar
+```
+
+The Bagged Tree model had the highest AUC of 0.89386 followed by XGBoost with an AUC of 0.89339, Elastic-Net Regression with an AUC of 0.88117, and Linear Discriminant Analysis with an AUC of 0.88044. It is an interesting discovery to see that the measurements for Accuracy and AUC are not the same order. Again I will be basing model performance off of AUC due to the imbalance of data.
+
+## Best Model: Bagged Tree
+
+With an AUC of 0.89386, the best model I built was the Bagged Tree Model.
+
+We can take a close look at a confusion matrix of the bagged tree model's performance on the testing data.
+
+```{r}
+load("models/bag_conf_matx.rda")
+bag_conf_matx
+```
+
+Next I want to deploy the model on the entire data set and match risk predictions to "ID_co" which is a variable in the original data set which identifies the community the data came from.
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+pandemic_cum <- pandemic_cum %>%
+  dplyr::select(-c("prop", "confirmed_cases", "population"))
+
+pred <- predict(bag_final_fit, new_data = pandemic_cum[,-1])
+pred <- bind_cols(pred, pandemic_cum %>% select(c(risk,ID_co)))
+
+# communities incorrectly classified
+pred %>% 
+  filter(.pred_class != risk) 
+```
+
+# Conclusion:

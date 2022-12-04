@@ -1,0 +1,95 @@
+---
+title: "Comparing Model Performances"
+author: "Lyndsey Umsted"
+date: "2022-12-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Libraries:
+```{r}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+Load Performances:
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("lda_acc.rda")
+load("qda_acc.rda")
+load("nb_acc.rda")
+load("lda_auc.rda")
+load("qda_auc.rda")
+load("nb_auc.rda")
+load("knn_acc.rda")
+load("knn_auc.rda")
+load("single_tree_acc.rda")
+load("single_tree_auc.rda")
+load("bagged_acc.rda")
+load("bag_auc.rda")
+load("rf_acc.rda")
+load("rf_auc.rda")
+load("xgb_acc.rda")
+load("xgb_auc.rda")
+load("elastic_acc.rda")
+load("elastic_auc.rda")
+```
+
+
+
+Comparing Accuracy:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/visuals")
+
+performance <- c(single_tree_acc$.estimate, bagged_acc$.estimate, rf_acc$.estimate, lda_acc$.estimate, qda_acc$.estimate,nb_acc$.estimate, knn_acc$.estimate, xgb_acc$.estimate, elastic_acc$.estimate)
+models <- c("Single Decision Tree", "Bagged Tree", "Random Forest", "LDA", "QDA", "Naive Bayes", "KNN", "XGBoost", "Elastic-Net  Regression")
+acc_results <- tibble(Accuracy = performance, models = models)
+acc_results %>% 
+  arrange(-performance)
+
+save(acc_results, file = "acc_results.rda")
+```
+
+Comparing AUC:
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/visuals")
+performance <- c(single_tree_auc$.estimate, bag_auc$.estimate, rf_auc$.estimate, lda_auc$.estimate, qda_auc$.estimate, nb_auc$.estimate, knn_auc$.estimate, xgb_auc$.estimate, elastic_auc$.estimate)
+models <- c("Single Decision Tree", "Bagged Tree", "Random Forest", "LDA", "QDA", "Naive Bayes", "KNN", "XGBoost", "Elastic-Net  Regression")
+auc_results <- tibble(AUC = performance, models = models)
+auc_results %>% 
+  arrange(-performance)
+
+
+save(auc_results, file = "auc_results.rda")
+```
+
+
+Plot of model ROC AUC:
+```{r}
+results_df <-as.data.frame(auc_results)
+results_df
+
+performance_bar <- results_df %>% 
+  ggplot(aes(x=reorder(models, -AUC), y = AUC)) +
+  geom_bar(stat="identity", fill = "light blue", col = "black") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab("models")
+
+performance_bar
+
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
+
+save(performance_bar, file = "visuals/performance_bar.rda")
+```
+
+
+
+

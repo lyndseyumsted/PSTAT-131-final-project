@@ -29,7 +29,7 @@ load("pandemic_cum.rda")
 set.seed(2002)
 
 pandemic_cum <- pandemic_cum %>%
-  select(-c("prop", "confirmed_cases", "population", "ID_co"))
+  select(-c("prop", "confirmed_cases", "population"))
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
@@ -39,14 +39,14 @@ pandemic_cum_test <- testing(pandemic_cum_split)
 
 Creating Recipe:
 ```{r}
-pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
+pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train[,-1]) %>%
   step_dummy(all_nominal_predictors()) %>%
   step_normalize(all_predictors())
 ```
 
 K-fold Cross Validation:
 ```{r}
-pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
+pandemic_folds <- vfold_cv(pandemic_cum_train[,-1], v = 10, strata = risk)  # 10-fold CV
 ```
 
 KNN Model:
@@ -54,7 +54,7 @@ KNN Model:
 knn_model <- nearest_neighbor(
   mode = "classification",
   engine = "kknn", 
-  neighbors = 5,
+  neighbors = 10,
   weight_func = "rectangular", 
   dist_power = NULL
 )
@@ -69,44 +69,45 @@ knn_wflow_cum <- workflow() %>%
 
 Fit KNN model to folded data:
 ```{r}
-knn_fit_cum <- fit_resamples(knn_wflow_cum, pandemic_folds)
+knn_fit_cum_folds <- fit_resamples(knn_wflow_cum, pandemic_folds)
+save(knn_fit_cum_folds, file = "knn_fit_cum_folds.rda")
 ```
 
 Collect Metrics
 ```{r}
-collect_metrics(knn_fit_cum)
+collect_metrics(knn_fit_cum_folds)
 ```
 
 
 Fit model to training data:
 ```{r}
-knn_fit_cum <- fit(knn_wflow_cum, pandemic_cum_train)
+knn_fit_cum <- fit(knn_wflow_cum, pandemic_cum_train[,-1])
 ```
 
 
 Generating predicted values for each observation of the training set:
 ```{r}
-pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_train %>% select(-risk))
+pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_train[,-1] %>% select(-risk))
 pandemic_cum_knn_pred %>% 
   head()
 ```
 
 Attaching a column of the actual observed confirmed cases:
 ```{r}
-pandemic_cum_knn_pred <- bind_cols(pandemic_cum_knn_pred, pandemic_cum_train %>% select(risk))
+pandemic_cum_knn_pred <- bind_cols(pandemic_cum_knn_pred, pandemic_cum_train[,-1] %>% select(risk))
 pandemic_cum_knn_pred %>% 
   head()
 ```
 
 ```{r}
-augment(knn_fit_cum, new_data = pandemic_cum_train) %>%
+augment(knn_fit_cum, new_data = pandemic_cum_train[,-1]) %>%
   conf_mat(truth = risk, estimate = .pred_class)
 ```
 
 Accuracy on Training
 
 ```{r}
-knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_train) %>%
+knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 knn_acc
 ```
@@ -114,25 +115,25 @@ knn_acc
 Testing Data:
 
 ```{r}
-pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_test %>% select(-risk))
+pandemic_cum_knn_pred <- predict(knn_fit_cum, new_data = pandemic_cum_test[,-1] %>% select(-risk))
 pandemic_cum_knn_pred %>% 
   head()
 ```
 
 Attaching a column of the actual observed confirmed cases:
 ```{r}
-pandemic_cum_knn_pred <- bind_cols(pandemic_cum_knn_pred, pandemic_cum_test %>% select(risk))
+pandemic_cum_knn_pred <- bind_cols(pandemic_cum_knn_pred, pandemic_cum_test[,-1] %>% select(risk))
 pandemic_cum_knn_pred %>% 
   head()
 ```
 
 ```{r}
-augment(knn_fit_cum, new_data = pandemic_cum_test) %>%
+augment(knn_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
   conf_mat(truth = risk, estimate = .pred_class)
 ```
 
 ```{r}
-knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_test) %>%
+knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 knn_acc
 ```
@@ -140,20 +141,28 @@ knn_acc
 
 ROC Curve:
 ```{r}
-roc <- augment(knn_fit_cum, pandemic_cum_test)
+roc <- augment(knn_fit_cum, pandemic_cum_test[,-1])
 
-roc %>%
+knn_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
   autoplot()
+
+knn_roc
 ```
 
 
 AUC:
 ```{r}
-knn_roc <- roc %>%
+knn_auc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
-knn_roc
+knn_auc
 ```
 
+Saving Performance:
+```{r}
+save(knn_acc, file = "knn_acc.rda")
+save(knn_auc, file = "knn_auc.rda")
+save(knn_roc, file = "knn_roc.rda")
+```
 
 

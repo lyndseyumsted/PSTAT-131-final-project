@@ -49,14 +49,18 @@ load("pandemic_cum.rda")
 set.seed(2002)
 
 pandemic_cum <- pandemic_cum %>%
-  select(-c("prop", "confirmed_cases", "population", "ID_co"))
+  select(-c("prop", "confirmed_cases", "population"))
 
 pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
 
 pandemic_cum_train <- training(pandemic_cum_split)
 pandemic_cum_test <- testing(pandemic_cum_split)
 
-pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
+pandemic_folds <- vfold_cv(pandemic_cum_train[,-1], v = 10, strata = risk)  # 10-fold CV
+
+pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train[,-1]) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors()) 
 
 ```
 
@@ -74,10 +78,10 @@ xgb_spec <-
 # add it to a workflow
 xgb_wflow <-
   workflow() %>%
-  add_formula(risk ~ Mean_Tmax + Urban + PovertyRate + MedianFamilyIncome + Traffic + Solid.Waste + Asthma + Low.Birth.Weight + Cardiovascular.Disease + Education + Linguistic.Isolation + Unemployment + under_10_. + Age11_to_64_. + over_65_. + Hispanic_. + White_. + African_Am_. + Asian_Am_. + Native_Am_. + Other_ethnicity_.) %>%
+  add_recipe(pandemic_cum_rec) %>%
   add_model(xgb_spec)
 
-xgb_grid <- grid_regular(mtry(range = c(2, 20)), trees(range = c(6, 10)), min_n(range = c(3, 5)),levels = 8)
+xgb_grid <- grid_regular(mtry(range = c(2, 21)), trees(range = c(6, 10)), min_n(range = c(3, 5)), levels = 8)
 
 # tune mtry, trees, min_n, tree_depth, etc.
 xgb_res <-
@@ -90,7 +94,9 @@ xgb_res <-
 ```
 
 ```{r}
-autoplot(xgb_res)
+xgb_plot <- autoplot(xgb_res)
+xgb_plot
+save(xgb_plot, file = "xgb_plot.rda")
 ```
 
 ```{r}
@@ -98,7 +104,9 @@ best <- select_best(xgb_res)
 
 xgb_final <- finalize_workflow(xgb_wflow, best)
 
-xgb_final_fit <- fit(xgb_final, data = pandemic_cum_train)
+xgb_final_fit <- fit(xgb_final, data = pandemic_cum_train[,-1])
+
+save(xgb_final_fit, file = "xgb_final_fit.rda")
 
 xgb_final_fit %>%
   extract_fit_parsnip() %>%
@@ -107,43 +115,56 @@ xgb_final_fit %>%
 
 accuracy on training:
 ```{r}
-augment(xgb_final_fit, new_data = pandemic_cum_train) %>%
+augment(xgb_final_fit, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 ```
 
 
 accuracy on testing:
 ```{r}
-augment(xgb_final_fit, new_data = pandemic_cum_test) %>%
+xgb_acc <- augment(xgb_final_fit, new_data = pandemic_cum_test[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
+xgb_acc
 ```
 
 
 
 AUC:
 ```{r}
-roc <- augment(xgb_final_fit, pandemic_cum_test)
+roc <- augment(xgb_final_fit, pandemic_cum_test[,-1])
 
-xgb_roc <- roc %>%
+xgb_auc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
 
-xgb_roc
+xgb_auc
 ```
 
 ROC Curves:
 ```{r}
-roc %>%
+xgb_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
   autoplot()
+
+xgb_roc
 ```
 
 
 Confusion Matrix:
 ```{r}
-augment(xgb_final_fit, new_data = pandemic_cum_test) %>%
+xgb_conf_matx <- augment(xgb_final_fit, new_data = pandemic_cum_test[,-1]) %>%
   conf_mat(truth = risk, estimate = .pred_class) %>%
   autoplot(type = "heatmap")
+
+xgb_conf_matx
+
+save(xgb_conf_matx, file = "xgb_conf_matx.rda")
 ```
 
+Saving Performance:
+```{r}
+save(xgb_acc, file = "xgb_acc.rda")
+save(xgb_roc, file = "xgb_roc.rda")
+save(xgb_auc, file = "xgb_auc.rda")
+```
 
 
