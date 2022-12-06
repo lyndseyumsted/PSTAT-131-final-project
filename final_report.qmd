@@ -118,7 +118,6 @@ pandemic_cum <- pandemic_cum_sub %>%
 
 ```{r, echo=FALSE}
 load("models/pandemic_cum.rda")
-load("visuals/gg_cum.rda")
 load("visuals/total_cases_cum.rda")
 barplot(total_cases_cum$cumulative_cases, total_cases_cum$week, 
         names.arg = c(7:51), 
@@ -126,13 +125,11 @@ barplot(total_cases_cum$cumulative_cases, total_cases_cum$week,
         xlab = "week",
         main = "Cumulative Number of Covid-19 Cases per Week in 2020",
         col = "pink")
-gg_cum
 ```
 
 #### New Cases each week of 2020:
 
 ```{r, echo=FALSE}
-load("visuals/gg_new.rda")
 load("visuals/total_cases.rda")
 barplot(total_cases$new_cases, total_cases$week, 
         names.arg = c(7:51), 
@@ -140,10 +137,9 @@ barplot(total_cases$new_cases, total_cases$week,
         xlab = "week",
         main = "New Number of Covid-19 Cases per Week in 2020",
         col = "pink")
-gg_new
 ```
 
-Here we can see that there was a rise in cases around weeks 26 to 35 which are the months June through August and then there is another spike following week 46 which is about halfway through November to the rest of the year right around the winter holidays.
+Here we can see that there was a rise in cases around weeks 26 to 35 which are the months June through August and then there is another spike following week 46 which is about halfway through November to the rest of the year right around the winter holidays when more people stayed indoors and possibly had larger gatherings than just immediate households.
 
 ### Converting Cumulative Cases into Proportions of Population for a Classification Model
 
@@ -1058,6 +1054,8 @@ bag_conf_matx
 
 Next I want to deploy the model on the entire data set and match risk predictions to "ID_co" which is a variable in the original data set which identifies the community the data came from.
 
+#### Communities Predicted to be at High Risk
+
 ```{r}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("pandemic_cum.rda")
@@ -1068,9 +1066,55 @@ pandemic_cum <- pandemic_cum %>%
 pred <- predict(bag_final_fit, new_data = pandemic_cum[,-1])
 pred <- bind_cols(pred, pandemic_cum %>% select(c(risk,ID_co)))
 
-# communities incorrectly classified
+# communities at high risk
 pred %>% 
-  filter(.pred_class != risk) 
+  filter(.pred_class == "high") 
 ```
+
+The model predicts these 310 communities in the original data to be at high risk for a Covid-19 outbreak at the end of the year 2020
+
+#### Communities Incorrectly Classified:
+
+```{r}
+pred %>%
+  filter(.pred_class != risk)
+```
+
+The model incorrectly classified 68 communities
+
+#### Communities Correctly Classified:
+
+```{r}
+pred %>%
+  filter(.pred_class == risk)
+```
+
+The model correctly classified 1085 communities.
+
+#### Confusion Matrix, Accuracy, and AUC on Full Data Set
+
+```{r}
+# confusion matrix
+augment(bag_final_fit, new_data = pandemic_cum[,-1]) %>%
+  conf_mat(truth = risk, estimate = .pred_class) %>%
+  autoplot(type = "heatmap")
+
+# accuracy
+augment(bag_final_fit, new_data = pandemic_cum[,-1]) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+
+roc <- augment(bag_final_fit, pandemic_cum[,-1])
+
+# AUC
+roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+
+# roc curve
+roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+```
+
+These results may appear to be excellent se to remember that this model was trained on 80% of the original data set so this is what is known as overfitting
 
 # Conclusion:

@@ -184,6 +184,7 @@ nb_wkflow <- workflow() %>%
   add_recipe(pandemic_cum_rec)
 
 nb_fit <- fit(nb_wkflow, pandemic_cum_train[,-1])
+
 ```
 
 ### Assessing Performance
