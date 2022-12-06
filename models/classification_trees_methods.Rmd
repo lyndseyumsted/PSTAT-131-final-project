@@ -212,13 +212,10 @@ tune_res_bag <- tune_grid(
 )
 ```
 
-```{r}
-# cost_plot_bag <- autoplot(tune_res_bag)
-# cost_plot_bag
-# save(cost_plot_bag, file = "cost_plot_bag.rda")
-```
 
 ```{r}
+show_best(tune_res_bag)
+
 best_complexity <- select_best(tune_res_bag)
 
 bag_final <- finalize_workflow(bag_wf, best_complexity)

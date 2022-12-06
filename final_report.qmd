@@ -9,11 +9,11 @@ toc: true
 
 # Introduction
 
-This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 30 different predictors including socioeconomic factors, and abiotic factors such as temperature, and pollution indicators. This project originates from a personal interest in public health and previous studying done on disease dynamics.
+This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 21 different predictors including socioeconomic, health, a-biotic, and pollution indicators. The intention of this project is to identify the underlying correlations for communities with high rates of Covid-19 cases cumulatively by the end of the year 2020. This project originates from a personal interest in public health and previous studying done on disease dynamics. The machine learning power of these models have the ability to identify underlying correlations between variables very quickly and build predictions upon observations providing much information about communities most heavily affected by this disease.
 
 #### Packages and Libraries:
 
-```{r, message = FALSE}
+```{r, message = FALSE, warning=FALSE}
 library(corrplot)  # for the correlation plot
 library(discrim)  # for linear discriminant analysis
 library(corrr)   # for calculating correlation
@@ -23,24 +23,18 @@ library(tidyverse)   # using tidyverse and tidymodels for this project mostly
 library(tidymodels)
 library(ggplot2)   # for most of our visualizations
 tidymodels_prefer()
-library(ISLR) 
-library(ISLR2) 
-library(poissonreg)
 library(klaR) # for naive bayes
-library(randomForest)
-library(vip)
-library(dplyr)
+library(vip) # for variable importance plots
+library(dplyr) # for piping and other uses
 ```
 
 ## What is Covid-19?
 
-Coronavirus disease (COVID-19) is an infectious disease caused by the SARS-CoV-2 virus. Most people infected with the virus will experience mild to moderate respiratory illness and recover without requiring special treatment. Some people become seriously ill and require medical attention. Older people and those with underlying medical conditions are more likely to develop serious illness and hospitalizaton. COVID-19 can affect people of all ages, including death. The virus can spread from an infected person's mouth or nose in small liquid particles when they cough, sneeze, speak, sing or breathe. These particles range from larger respiratory droplets to smaller aerosols.
-
-https://www.who.int/health-topics/coronavirus#tab=tab_1
+[According to the World Health Organization](https://www.who.int/health-topics/coronavirus#tab=tab_1) Coronavirus disease (COVID-19) is an infectious disease caused by the SARS-CoV-2 virus. Most people infected with the virus will experience mild to moderate respiratory illness and recover without requiring special treatment. Some people become seriously ill and require medical attention. Older people and those with underlying medical conditions are more likely to develop serious illness and hospitalization. COVID-19 can affect people of all ages, including death. The virus can spread from an infected person's mouth or nose in small liquid particles when they cough, sneeze, speak, sing or breathe. These particles range from larger respiratory droplets to smaller aerosols.
 
 ## My Data
 
-The data set used for this research project was provided to me by a faculty member, Dr. Andrew MacDonald, who I had the opportunity to work under this summer during an undergraduate research internship. Dr. MacDonald merged data from the *LA Times* on socioeconomic factors and food access for different Californian zip codes with data reflecting Covid-19 case counts, weather, and pollution levels from the same zip codes during the Covid-19 pandemic in 2020. The original data set contained 273 columns of data.
+The data set used for this research project was provided to me by a faculty member, Dr. Andrew MacDonald, who I had the opportunity to work under this summer during an undergraduate research internship. Dr. MacDonald merged data from the *LA Times* on socioeconomic factors and food access for different Californian zip codes with data reflecting Covid-19 case counts, weather, and pollution levels from the same zip codes during the Covid-19 pandemic in 2020. The original data set contained 268 columns of data.
 
 #### Predictor Variables:
 
@@ -75,13 +69,13 @@ The data set used for this research project was provided to me by a faculty memb
 
 # Exploratory Data Analysis
 
-The original data set used for this project contained 55,620 observations of 268 variables. In the beginning stages of this project, this data set was tidied, cleaned, and reduced to fewer variables. In the following sections we'll explore the distribution of our response variable "outbreak risk" and look at visualizations of key predictor distributions and relationships between predictors and case counts of Covid-19.
+The original data set used for this project contained 55,620 observations of 268 variables. In the beginning stages of this project, this data set was tidied, cleaned, and reduced to fewer variables. In the following sections we'll explore the distribution of our response variable "risk" and look at visualizations of key predictor distributions and relationships between predictors and outbreak risk of Covid-19.
 
 ## Loading and Exploring Raw Data
 
 The pandemic data set is stored in a .csv format and can be read in from the directory:
 
-```{r, echo=FALSE}
+```{r}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
 pandemic_weekly_og <- read.csv("data/pandemic_weekly.csv")
 
@@ -89,30 +83,34 @@ pandemic_weekly_og <- read.csv("data/pandemic_weekly.csv")
 pandemic_weekly_og$confirmed_cases <- pandemic_weekly_og$confirmed_cases_fill
 pandemic_weekly_og$new_cases <- pandemic_weekly_og$new_cases_fill
 
+# removing repeated columns
+pandemic_weekly_og <- pandemic_weekly_og %>%
+  dplyr::select(-c(confirmed_cases_fill, new_cases_fill))
+
 ```
-
-Dimensions of the data:
-
-```{r, echo=FALSE}
-dim(pandemic_weekly_og)
-```
-
-This is a very large data set with 270 variables, all of which are not necessary. The variable labeled "confirmed_cases" will be the focus of our predictions. This column contains the cumulative number of positive Covid-19 cases per week in each zip-code during the 2020 year. The data set also contains a variable labeled "new_cases" which contains the new number of positive Covid-19 cases per week during the 2020 year. We can explore these two variables:
 
 #### Missing Values:
 
-```{r}
+```{r, echo = FALSE}
 load("visuals/og_missing_plot.rda")
 og_missing_plot
 ```
 
-As we can see, there are not a lot of missing values in our original data for these variables, thus a solution to the missing values problem is to just remove them from our data:
+As we can see, there are few missing values in our original data for these variables, thus a solution to the missing values problem is to just remove them from our data:
 
 ```{r}
 load("models/pandemic_cum_sub.rda")
 pandemic_cum <- pandemic_cum_sub %>%
   na.omit()
 ```
+
+#### Dimensions of the data:
+
+```{r, echo=FALSE}
+dim(pandemic_weekly_og)
+```
+
+This is a very large data set with 268 variables, of which not all are necessary. Thus the rest of this project will focus on the 21 predictor variables above and the response variable. The variable labeled "confirmed_cases" will be the focus of our predictions. This column contains the cumulative number of positive Covid-19 cases per week in each zip-code during the 2020 year. The data set also contains a variable labeled "new_cases" which contains the new number of positive Covid-19 cases per week during the 2020 year. We can explore these two variables:
 
 #### Cumulative Cases throughout 2020:
 
@@ -139,11 +137,13 @@ barplot(total_cases$new_cases, total_cases$week,
         col = "pink")
 ```
 
-Here we can see that there was a rise in cases around weeks 26 to 35 which are the months June through August and then there is another spike following week 46 which is about halfway through November to the rest of the year right around the winter holidays when more people stayed indoors and possibly had larger gatherings than just immediate households.
+Here we can see that there was a rise in cases around weeks 26 to 35 which are the months June through August. There is another spike following week 46 which is about halfway through November through the rest of the year. This is right around the winter holidays when more people likely stayed indoors and had larger gatherings than just immediate households.
 
 ### Converting Cumulative Cases into Proportions of Population for a Classification Model
 
 My initial plan for this project was to build a regression model which predicted continuous case counts by the end of 2020 for each zip code. However, I decided to take this a step further and build a classification model which categorized zip codes into low, moderate, or high risk for a Covid-19 outbreak. Covid-19 cumulative case numbers are highly positively correlated with population so I decided to make a new column in the data set of the proportion of a population which has tested positive for Covid-19 by the end of the year 2020.
+
+-   Note: A large amount of communities reported 0 cumulative cases by the end of the year 2020. Due to the possibility of this being a lack of reporting by these areas and my interest in only areas affected by the disease, I removed all observations with 0 cumulative cases and thus all observations have at least 1 cumulative case by the end of 2020.
 
 ```{r, echo=FALSE}
 boxplot(pandemic_cum$prop, horizontal = TRUE, main = "Distribution of Proportion of Covid-19 Cases in a Population",
@@ -155,9 +155,21 @@ hist(pandemic_cum$prop, breaks = 50, main = "Distribution of Proportion of Covid
      xlab = "Proportion of Covid-19 Cases in a Population", col = "light blue")
 ```
 
+Looking at these two plots, we can see that the distribution of proportions positive Covid-19 cases is highly skewed right with several upper outliers. A summary of this distribution can be given by this table:
+
+```{r, echo=FALSE}
+summary(pandemic_cum$prop)
+```
+
+As seen above, the proportion of positive cases of Covid-19 in Californian populations affected by the disease ranged from less than 0.001% to almost 60%. Majority of the communities affected by Covid-19 had cumulative positive case rates below 10% of the population.
+
 #### Choosing Splits for Low, Moderate, and High Risk for Covid-19 Outbreak:
 
-As I was choosing a suitable split for what would be considered low, moderate, or high risk I researched what is considered a "high" amount of cases. According to the World Health Organization, a 5% positive rate was considered a threshold for reopening stores and businesses during 2020. Thus, any proportions of Covid-19 cases in a population greater than 5% would be classified as high. For the low split, I decided that 2% would be a decent threshold to separate low and moderate risk. Following this, I then created a variable called "risk" where I classified proportions in each of these intervals into low, moderate, and high risk.
+As I was choosing a suitable split for what would be considered low, moderate, or high risk I researched what is considered a "high" amount of cases. According to the [World Health Organization](https://publichealth.jhu.edu/2020/covid-19-testing-understanding-the-percent-positive#:~:text=As%20a%20rule%20of%20thumb,weeks%20before%20governments%20consider%20reopening.) a 5% positive rate for weekly tests was considered a threshold for reopening stores and businesses during 2020. Thus, any proportions of Covid-19 cases in a population greater than 5% would be classified as high. For the low split, I decided that 2% would be a decent threshold to separate low and moderate risk. Following this, I then created a variable called "risk" where I classified proportions in each of these intervals into low, moderate, and high risk.
+
+-   Note: the World Health Organization specified the the 5% positive rate on weekly tests, whereas this project focuses on cumulative proportions. With the broad assumption that few people contracted Covid-19 a second time during the year 2020, I decided to keep the 5% threshold for high risk.
+
+#### Proportions of each class in full data set:
 
 ```{r, echo=FALSE}
 # creating low, moderate, and high categories based on
@@ -180,7 +192,7 @@ There is some class imbalance with only 28% of the observations being categorize
 load("models/pandemic_cum.rda")
 library(corrplot)
 pandemic_cum %>% 
-  dplyr::select(-c(prop)) %>%
+  dplyr::select(-c(confirmed_cases, population)) %>%
   dplyr::select(where(is.numeric)) %>% 
   cor() %>% 
   corrplot(diag = FALSE, 
@@ -345,44 +357,28 @@ pandemic_cum %>%
 
 Looking at the distribution of Unemployment in Californian communities, there looks to be a correlation between high risk levels of Covid-19 outbreaks in communities with a higher proportion of unemployment. Communities with lower unemployment rates tend to be at a moderate or low risk for a Covid-19 outbreak.
 
-## Data Splitting:
-
-When fitting the pandemic data to my machine learning models, I need to split the data into a training and testing/validation set. This allows the models to be trained on a random subset of the data in order to build predictions. Once trained on the training set, each of the models are then used to create predictions on the testing/validation set in order to get a measure of the models' accuracies for making predictions on new data. The training and testing validation approach gives us an estimate on how the models will perform on new data the models haven't seen yet. In order to split my data into training and testing sets I used a random seed and I have decided to make the proportion of split 80% for the training data and 20% for the testing data. Another important factor in splitting the data is identifying what to stratify the split on, which in my case is the response variable "risk". As seen in the exploratory analysis, my response variable "risk" is divided into three categories or classes: low, moderate, and high, however there is not an evenly distributed number of observations of each of these classes. According to the exploratory analysis 30% of the responses are low, 42% of the responses are moderate, and only 28% of the responses are high. This class imbalance may result in my models having low predictive power for accurately classifying high and possibly even low risk areas. Stratifying on the risk variable avoids the possibility of a disproportionate amount of high risk observations ending up in the training or testing sets. After stratifying, both the training and testing sets should have the same 30%, 42%, and 28% distribution of each class.
+#### Solid Waste:
 
 ```{r}
-setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
-load("pandemic_cum.rda")
-
-set.seed(2002)
-
-pandemic_cum <- pandemic_cum %>%
-  dplyr::select(-c("prop", "confirmed_cases", "population", "ID_co"))
-
-pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
-
-pandemic_cum_train <- training(pandemic_cum_split)
-pandemic_cum_test <- testing(pandemic_cum_split)
+pandemic_cum %>% 
+  dplyr::select("risk", "Solid.Waste") %>%
+  mutate(Solid.Waste = cut(Solid.Waste, 
+                                  breaks = seq(min(Solid.Waste), 
+                                  max(Solid.Waste), by = 0.5), 
+                          include.lowest = TRUE)) %>%
+  group_by(Solid.Waste) %>%
+  na.omit(Solid.Waste) %>%
+  ggplot(aes(Solid.Waste)) + 
+  geom_bar(aes(fill = risk)) +
+  scale_fill_manual(values = c("light blue", "pink", "light green")) +
+  theme(axis.text.x = element_text(angle = 90))
 ```
 
-### K-Fold Cross Validation:
-
-Here we are going to use k-fold cross validation in order to estimate the accuracy of each of our models on new data and in order to tune the models. The folds will also be stratified on the outcome variable risk in order to handle the data imbalance. Cross Validation is better at estimating how well our models will perform on new data than a single validation set because it assesses the performance on multiple folds of the data, therefore validating on different combinations of the data and taking into account the variation present in the data.
-
-```{r}
-pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
-```
-
-### Recipe:
-
-The recipe for each of my models will use all 21 predictor variables outlined in the introduction along with step codes used to center and scale each of the numerical variables in order to have better performance.
-
-```{r}
-pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
-  step_dummy(all_nominal_predictors()) %>%
-  step_normalize(all_predictors())
-```
+Looking at the distribution of Solid Waste in Californian communities, there does not appear to be a correlation between risk levels of Covid-19 outbreaks in communities and solid waste.
 
 # Machine Learning Models
+
+In this section I will navigate the steps to building and deploying my 9 machine learning models and their produced results. First we will start with data splitting.
 
 ```{r, echo = FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
@@ -406,7 +402,53 @@ load("elastic_acc.rda")
 load("elastic_auc.rda")
 ```
 
-In order to make predictions to classify areas into low, moderate, or high risk for Covid-19, I will build and deploy 9 machine learning models each using the same recipe as seen above. For each of these models I will train them on the training sets. Each model will be tuned using the folded data from the k-fold cross validation. The code used to preprocess the data and build and run each of the models can be found in their respective R markdown files. The following is a description of each of the models used in this project.
+## Data Splitting:
+
+When fitting the pandemic data to my machine learning models, I need to split the data into a training and testing/validation set. This allows the models to be trained on a random subset of the data in order to build predictions. Once trained on the training set, each of the models are then used to create predictions on the testing/validation set in order to get a measure of the model accuracies for making predictions on new data. The training and testing validation approach gives us an estimate on how the models will perform on new data the models have not seen yet. In order to split my data into training and testing sets I used a random seed and I have decided to make the proportion of split 80% for the training data and 20% for the testing data. Another important factor in splitting the data is identifying what to stratify the split on, which in my case is the response variable "risk". As seen in the exploratory analysis, my response variable "risk" is divided into three categories or classes: low, moderate, and high, however there is not an evenly distributed number of observations of each of these classes. According to the exploratory analysis 30% of the responses are low, 42% of the responses are moderate, and only 28% of the responses are high. This class imbalance may result in my models having low predictive power for accurately classifying high and possibly even low risk areas. Stratifying on the risk variable avoids the possibility of a disproportionate amount of each risk class observations ending up in the training or testing sets. After stratifying, both the training and testing sets should have the same 30%, 42%, and 28% distribution of each class.
+
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
+load("pandemic_cum.rda")
+
+set.seed(2002)
+
+pandemic_cum <- pandemic_cum %>%
+  dplyr::select(-c("prop", "confirmed_cases", "population", "ID_co"))
+
+pandemic_cum_split <- initial_split(pandemic_cum, prop = 0.80, strata = risk)
+
+pandemic_cum_train <- training(pandemic_cum_split)
+pandemic_cum_test <- testing(pandemic_cum_split)
+```
+
+```{r, echo=FALSE}
+round(prop.table(table(pandemic_cum_train$risk)), 2)
+round(prop.table(table(pandemic_cum_test$risk)), 2)
+```
+
+Our stratification worked! Now I will discuss an extension of train and test validation: K-Fold Cross Validation.
+
+### K-Fold Cross Validation:
+
+Here we are going to use k-fold cross validation in order to estimate the accuracy of each of our models on new data and to tune the models' hyperparameters. The folds will also be stratified on the outcome variable risk in order to handle the data imbalance. Cross Validation is better at estimating how well our models will perform on new data than a single validation set because it assesses the performance on multiple folds of the data, therefore validating on different combinations of the data and taking into account the variation present.
+
+```{r}
+pandemic_folds <- vfold_cv(pandemic_cum_train, v = 10, strata = risk)  # 10-fold CV
+```
+
+### Recipe:
+
+The recipe for each of my models will use all 21 predictor variables outlined in the introduction along with step codes used to center and scale each of the numerical variables in order to have better performance.
+
+```{r}
+pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors())
+```
+
+## Model Building
+
+In order to make predictions to classify areas into low, moderate, or high risk for Covid-19, I will build and deploy 9 machine learning models each using the same recipe as seen above. For each of these models I will train them on the training set. Each model with hyper-parameters will be tuned using the folded data from the k-fold cross validation. The code used to preprocess the data and build and run each of the models can be found in their respective R markdown files. The following is a description of each of the models used in this project.
 
 1.  `Linear Discriminant Analysis (LDA)`: LDA is a linear method in supervised learning and is a dimensionality reduction technique that works well in multi-class classification problems like the one in this project. LDA looks for linear combinations of the predictor variables in order to create decision boundaries for the response variable. LDA assumes a common covariance matrix for each class of the response variable.
 
@@ -440,7 +482,7 @@ In order to make predictions to classify areas into low, moderate, or high risk 
 
     ![](https://www.researchgate.net/publication/349624596/figure/fig1/AS:995408276889600@1614335235062/Bootstrap-aggregation-bagging-in-regression-tree-ensembles.png)
 
-7.  Random Forest: Random Forest is another ensemble method which uses multiple classification decision trees and bootstrap aggregation to make predictions. Random Forest is an extension of bagging in that it also randomly selects a certain number of features in each data subset. Random Forest works to minimize variance and overfitting of the data.
+7.  `Random Forest`: Random Forest is another ensemble method which uses multiple classification decision trees and bootstrap aggregation to make predictions. Random Forest is an extension of bagging in that it also randomly selects a certain number of features in each data subset. Random Forest works to minimize variance and overfitting of the data.
 
     Below is a visualization of how a random forest model works:
 
@@ -477,9 +519,9 @@ lda_wkflow <- workflow() %>%
 lda_fit_cum_folds <- fit_resamples(lda_wkflow, pandemic_folds)
 ```
 
-Performance Across Folds
+#### Performance Across Folds:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("lda_fit_cum_folds.rda")
 
@@ -489,21 +531,21 @@ collect_metrics(lda_fit_cum_folds)
 
 I then fit the LDA model to the entire training set and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 lda_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 lda_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/lda_roc.rda")
 lda_roc
 ```
@@ -527,9 +569,9 @@ qda_wkflow <- workflow() %>%
 qda_fit_cum_folds <- fit_resamples(qda_wkflow, pandemic_folds)
 ```
 
-Performance Across Folds
+#### Performance Across Folds:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("qda_fit_cum_folds.rda")
 
@@ -539,21 +581,21 @@ collect_metrics(qda_fit_cum_folds)
 
 I then fit the QDA model to the entire training set and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 qda_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 qda_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/qda_roc.rda")
 qda_roc
 ```
@@ -578,9 +620,9 @@ nb_wkflow <- workflow() %>%
 nb_fit_folds <- fit_resamples(nb_wkflow, pandemic_folds)
 ```
 
-Performance Across Folds
+#### Performance Across Folds:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("nb_fit_folds.rda")
 
@@ -590,28 +632,28 @@ collect_metrics(nb_fit_folds)
 
 I then fit the Naive Bayes model to the entire training set and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 nb_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 nb_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/nb_roc.rda")
 nb_roc
 ```
 
 ### K-Nearest Neighbors:
 
-The fourth model I trained was a K-Nearest Neighbors model. Here is how I fit the model and used cross-validation to assess its performance:
+The fourth model I trained was a K-Nearest Neighbors model with 10 neighbors. Here is how I fit the model and used cross-validation to assess its performance:
 
 ```{r, eval = FALSE}
 # specifying knn model using kknn engine, classification mode, rectangular weight function, and neighbors
@@ -632,9 +674,9 @@ knn_wflow_cum <- workflow() %>%
 knn_fit_cum_folds <- fit_resamples(knn_wflow_cum, pandemic_folds)
 ```
 
-Performance Across Folds
+#### Performance Across Folds:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("knn_fit_cum_folds.rda")
 
@@ -644,28 +686,32 @@ collect_metrics(knn_fit_cum_folds)
 
 I then fit the K-Nearest Neighbor model to the entire training set and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 knn_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 knn_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/knn_roc.rda")
 knn_roc
 ```
 
 ### Single Decision Tree:
 
-The fifth model I trained was a Single Decision Tree. Here is how I fit the model and used cross-validation to tune the cost_complexity() parameter:
+The fifth model I trained was a Single Decision Tree. Here is how I fit the model and used cross-validation to tune the cost_complexity() parameter and asses its performance.
+
+-   Note:
+
+    -   `cost_complexity()` is a hyper-parameter used to control the size of the decision tree and to select the optimal tree size which reduces error.
 
 ```{r, eval = FALSE}
 # specifying decision tree model using rpart engine and classification mode
@@ -693,7 +739,7 @@ tune_res_st <- tune_grid(
 )
 ```
 
-Performance on different Cost Complexity levels:
+#### Performance on different Cost Complexity levels:
 
 ```{r}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
@@ -702,9 +748,9 @@ load("cost_plot.rda")
 cost_plot
 ```
 
-Looking at Visualization of Decision Tree:
+#### Looking at Visualization of Decision Tree:
 
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("class_tree_final_fit.rda")
 library(rpart.plot)
@@ -715,28 +761,32 @@ class_tree_final_fit %>%
 
 I then fit the Single Decision Tree model to the entire training set using the best cost complexity parameter and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 single_tree_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 single_tree_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/single_tree_roc.rda")
 single_tree_roc
 ```
 
 ### Bootstrap Aggregated Tree:
 
-The sixth model I trained was a Bootstrap Aggregated (Bagged) Decision Tree. Here is how I fit the model and used cross-validation to tune the cost_complexity() parameter:
+The sixth model I trained was a Bootstrap Aggregated (Bagged) Decision Tree. Here is how I fit the model and used cross-validation to tune the cost_complexity() parameter and asses its performance:
+
+-   Note:
+
+    -   `cost_complexity()` is a hyper-parameter used to control the size of the decision tree and to select the optimal tree size which reduces error.
 
 ```{r, eval = FALSE}
 # specifying decision tree model using randomForest engine and classification mode
@@ -761,7 +811,7 @@ tune_res_bag <- tune_grid(
 )
 ```
 
-We can look at the bagged tree Variable Importance Plot:
+#### Variable Importance Plot:
 
 ```{r}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
@@ -776,28 +826,36 @@ For the Bagged Tree model, the top three most important predictor variables were
 
 I then fit the Bagged Tree model to the entire training set using the best cost complexity parameter and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 bagged_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 bag_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/bag_roc.rda")
 bag_roc
 ```
 
 ### Random Forest:
 
-The seventh model I trained was a Random Forest. Here is how I fit the model and used cross-validation to tune the mtry(), trees(), and min_n() parameters:
+The seventh model I trained was a Random Forest. Here is how I fit the model and used cross-validation to tune the mtry(), trees(), and min_n() parameters and asses its performance:
+
+-   Note:
+
+    -   `mtry()` is a hyper-parameter used to control the number of random set of predictors used in a single decision tree.
+
+    -   `trees()` is a hyper-parameter used to control how many trees are used in the ensemble.
+
+    -   `min_n()` is a hyper-parameter used to control the minimum number of data points in a node needed for the node to be split further.
 
 ```{r, eval = FALSE}
 # specifying random forest model using ranger engine and classification mode. Also identifying which parameters to tune
@@ -824,18 +882,18 @@ tune_res_rf <- tune_grid(
 )
 ```
 
-Performance on different Cost Complexity levels:
+#### Performance on different Cost Complexity levels:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("rf_plot.rda")
 
 rf_plot
 ```
 
-We can look at the Random Forest Variable Importance Plot:
+#### Variable Importance Plot:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("rf_final_fit.rda")
 
@@ -848,28 +906,36 @@ For the Random Forest model, the top three most important predictor variables we
 
 I then fit the Random Forest model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 rf_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 rf_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/rf_roc.rda")
 rf_roc
 ```
 
 ### Extreme Gradient Boosting:
 
-The eighth model I trained was an XGBoost model. Here is how I fit the model and used cross-validation to tune the mtry(), trees(), and min_n() parameters:
+The eighth model I trained was an XGBoost model. Here is how I fit the model and used cross-validation to tune the mtry(), trees(), and min_n() parameters and asses its performance:
+
+-   Note:
+
+    -   `mtry()` is a hyper-parameter used to control the number of random set of predictors used in a single decision tree.
+
+    -   `trees()` is a hyper-parameter used to control how many trees are used in the ensemble.
+
+    -   `min_n()` is a hyper-parameter used to control the minimum number of data points in a node needed for the node to be split further.
 
 ```{r, eval = FALSE}
 # specifying XGBoost model usingxgboost engine and classification mode. Also identifying which parameters to tune
@@ -902,18 +968,18 @@ xgb_res <-
   )
 ```
 
-Performance on different parameter levels:
+#### Performance on different parameter levels:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("xgb_plot.rda")
 
 xgb_plot
 ```
 
-We can look at the XGBoost Variable Importance Plot:
+#### Variable Importance Plot:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("xgb_final_fit.rda")
 
@@ -926,28 +992,34 @@ For the XGBoost model, the top three most important predictor variables were Edu
 
 I then fit the XGBoost model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 xgb_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 xgb_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/xgb_roc.rda")
 rf_roc
 ```
 
 ### Elastic-Net Regression:
 
-The ninth model I trained was an Elastic-Net Regression model. Here is how I fit the model and used cross-validation to tune the penalty() and mixture() parameters.
+The ninth model I trained was an Elastic-Net Regression model. Here is how I fit the model and used cross-validation to tune the penalty() and mixture() parameters and assess its performance:
+
+-   Note:
+
+    -   `penalty()` is a hyper-parameter used to control the amount of shrinkage of coefficients in the regression.
+
+    -   `mixture()` is a hyper-parameter used to control .
 
 ```{r, eval = FALSE}
 # specifying multinomial regression model using glmnet engine and classification mode. Also identifying which parameters to tune
@@ -973,9 +1045,9 @@ tune_res_elastic <- tune_grid(
 )
 ```
 
-Performance on different parameter levels:
+#### Performance on different parameter levels:
 
-```{r}
+```{r, echo=FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("elastic_plot.rda")
 
@@ -984,21 +1056,21 @@ elastic_plot
 
 I then fit the Elastic-Net Regression model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
 
-Accuracy:
+#### Accuracy:
 
-```{r}
+```{r, echo=FALSE}
 elastic_acc
 ```
 
-Area Under the ROC Curve:
+#### Area Under the ROC Curve:
 
-```{r}
+```{r, echo=FALSE}
 elastic_auc
 ```
 
-ROC Curve for each Class:
+#### ROC Curve for each Class:
 
-```{r}
+```{r, echo=FALSE}
 load("models/elastic_roc.rda")
 elastic_roc
 ```
@@ -1047,16 +1119,24 @@ With an AUC of 0.89386, the best model I built was the Bagged Tree Model.
 
 We can take a close look at a confusion matrix of the bagged tree model's performance on the testing data.
 
-```{r}
+```{r, echo = FALSE}
 load("models/bag_conf_matx.rda")
 bag_conf_matx
+```
+
+We can also take another look at he Variable Importance Plot to see which variables were the most influential in categorizing communities into their risk levels.
+
+```{r}
+rf_final_fit %>%
+  extract_fit_parsnip() %>%
+  vip()
 ```
 
 Next I want to deploy the model on the entire data set and match risk predictions to "ID_co" which is a variable in the original data set which identifies the community the data came from.
 
 #### Communities Predicted to be at High Risk
 
-```{r}
+```{r, echo = FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("pandemic_cum.rda")
 
@@ -1075,7 +1155,7 @@ The model predicts these 310 communities in the original data to be at high risk
 
 #### Communities Incorrectly Classified:
 
-```{r}
+```{r, echo = FALSE}
 pred %>%
   filter(.pred_class != risk)
 ```
@@ -1084,7 +1164,7 @@ The model incorrectly classified 68 communities
 
 #### Communities Correctly Classified:
 
-```{r}
+```{r, echo = FALSE}
 pred %>%
   filter(.pred_class == risk)
 ```
@@ -1093,7 +1173,7 @@ The model correctly classified 1085 communities.
 
 #### Confusion Matrix, Accuracy, and AUC on Full Data Set
 
-```{r}
+```{r, echo = FALSE}
 # confusion matrix
 augment(bag_final_fit, new_data = pandemic_cum[,-1]) %>%
   conf_mat(truth = risk, estimate = .pred_class) %>%
@@ -1115,6 +1195,12 @@ roc %>%
   autoplot()
 ```
 
-These results may appear to be excellent se to remember that this model was trained on 80% of the original data set so this is what is known as overfitting
+These results may appear to be excellent but we have to remember that this model was trained on 80% of the original data set so this is what is known as overfitting, and we would expect to see such high accuracy on this data.
 
 # Conclusion:
+
+After exploring this data of different communities in California and fitting several machine learning models to predict Covid-19 outbreak risk, I have found that the Bootstrap Aggregated Decision Trees model performs the best according to Area Under the Receiver Operator Curve. Using this model, I found that the top five predictor variables for classifying communities into risk classifications are: Hispanic\_., Education, Unemployment, Mean_Tmax, and Linguistic.Isolation.
+
+Through exploratory data analysis I found that there is a large correlation between socioeconomic factors such as poorer education, high poverty rate, low median family income, and linguistic isolation and high risk for Covid-19 outbreaks. These relationships point to how communities struggling with more socioeconomic problems are at a disproportionate risk for Covid-19 outbreaks. As a result of this project, I would consider the Covid-19 pandemic a public health concern as well as a socioeconomic concern.
+
+To expand upon this project without the time constraints, I believe a beneficial extension would be to match the locations of all the observations in my data set to coordinate points in an attempt to create a map of California with shading to spatially visualize where low, moderate, and high outbreak risk would be. I would also like to use this model on data from 2021 and 2022 to see the changes in risk level for each year and test the model's accuracy on more data.
