@@ -1,4 +1,5 @@
 # Using Machine Learning to Predict Covid-19 Risk in California Communities
+### By Lyndsey Umsted
 
 ## Project Description
 
