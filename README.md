@@ -1,4 +1,4 @@
-# PSTAT 131 Using Machine Learning to Predict Covid-19 Risk in California Communities
+# Using Machine Learning to Predict Covid-19 Risk in California Communities
 
 ## Project Description
 
