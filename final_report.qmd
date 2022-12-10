@@ -9,7 +9,7 @@ toc: true
 
 # Introduction
 
-This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 21 different predictors including socioeconomic, health, a-biotic, and pollution indicators. The intention of this project is to identify the underlying correlations for communities with high rates of Covid-19 cases cumulatively by the end of the year 2020. This project originates from a personal interest in public health and previous studying done on disease dynamics. The machine learning power of these models have the ability to identify underlying correlations between variables very quickly and build predictions upon observations providing much information about communities most heavily affected by this disease.
+This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 21 different predictors including socioeconomic, health, abiotic, and pollution indicators. The intention of this project is to identify the underlying correlations for communities with high rates of Covid-19 cases cumulatively by the end of the year 2020. This project originates from a personal interest in public health and previous studying done on disease dynamics. The machine learning power of these models have the ability to identify underlying correlations between variables very quickly and build predictions upon observations providing much information about communities most heavily affected by this disease.
 
 #### Packages and Libraries:
 
@@ -1197,7 +1197,7 @@ roc %>%
 
 These results may appear to be excellent but we have to remember that this model was trained on 80% of the original data set so this is what is known as overfitting, and we would expect to see such high accuracy on this data.
 
-# Conclusion:
+# Conclusion
 
 After exploring this data of different communities in California and fitting several machine learning models to predict Covid-19 outbreak risk, I have found that the Bootstrap Aggregated Decision Trees model performs the best according to Area Under the Receiver Operator Curve. Using this model, I found that the top five predictor variables for classifying communities into risk classifications are: Hispanic\_., Education, Unemployment, Mean_Tmax, and Linguistic.Isolation.
 

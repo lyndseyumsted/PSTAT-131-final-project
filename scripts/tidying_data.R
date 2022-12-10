@@ -398,6 +398,10 @@ pandemic_weekly <-
 save(pandemic_cum, file = "models/pandemic_cum.rda")
 save(pandemic_weekly, file = "models/pandemic_weekly.rda")
 
+#install.packages("writexl")
+library(writexl)
+write_xlsx(pandemic_cum, "data/pandemic_cum.xlsx")
+
 
 
 pandemic_cum %>% 
