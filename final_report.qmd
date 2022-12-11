@@ -7,6 +7,8 @@ editor: visual
 toc: true
 ---
 
+![](https://s.abcnews.com/images/US/mask-new-orleans_hpMain_20200720-015335_16x9_992.jpg)
+
 # Introduction
 
 This project is intended to build and deploy a machine learning classification model which categorizes California zip codes into low, moderate, or high risk for Covid-19 outbreaks by the end of the year of 2020. Risk predictions of Covid-19 were made using 21 different predictors including socioeconomic, health, abiotic, and pollution indicators. The intention of this project is to identify the underlying correlations for communities with high rates of Covid-19 cases cumulatively by the end of the year 2020. This project originates from a personal interest in public health and previous studying done on disease dynamics. The machine learning power of these models have the ability to identify underlying correlations between variables very quickly and build predictions upon observations providing much information about communities most heavily affected by this disease.
@@ -30,7 +32,9 @@ library(dplyr) # for piping and other uses
 
 ## What is Covid-19?
 
-[According to the World Health Organization](https://www.who.int/health-topics/coronavirus#tab=tab_1) Coronavirus disease (COVID-19) is an infectious disease caused by the SARS-CoV-2 virus. Most people infected with the virus will experience mild to moderate respiratory illness and recover without requiring special treatment. Some people become seriously ill and require medical attention. Older people and those with underlying medical conditions are more likely to develop serious illness and hospitalization. COVID-19 can affect people of all ages, including death. The virus can spread from an infected person's mouth or nose in small liquid particles when they cough, sneeze, speak, sing or breathe. These particles range from larger respiratory droplets to smaller aerosols.
+![](https://www.familydocs.org/wp-content/uploads/2020/03/coronavirus.jpg)
+
+According to the [World Health Organization](https://www.who.int/health-topics/coronavirus#tab=tab_1) Coronavirus disease (COVID-19) is an infectious disease caused by the SARS-CoV-2 virus. Most people infected with the virus will experience mild to moderate respiratory illness and recover without requiring special treatment. Some people become seriously ill and require medical attention. Older people and those with underlying medical conditions are more likely to develop serious illness and hospitalization. COVID-19 can affect people of all ages, including death. The virus can spread from an infected person's mouth or nose in small liquid particles when they cough, sneeze, speak, sing or breathe. These particles range from larger respiratory droplets to smaller aerosols.
 
 ## My Data
 
@@ -98,8 +102,7 @@ og_missing_plot
 
 As we can see, there are few missing values in our original data for these variables, thus a solution to the missing values problem is to just remove them from our data:
 
-```{r}
-load("models/pandemic_cum_sub.rda")
+```{r, eval = FALSE}
 pandemic_cum <- pandemic_cum_sub %>%
   na.omit()
 ```
@@ -359,7 +362,7 @@ Looking at the distribution of Unemployment in Californian communities, there lo
 
 #### Solid Waste:
 
-```{r}
+```{r, echo =  FALSE}
 pandemic_cum %>% 
   dplyr::select("risk", "Solid.Waste") %>%
   mutate(Solid.Waste = cut(Solid.Waste, 
@@ -400,6 +403,12 @@ load("xgb_acc.rda")
 load("xgb_auc.rda")
 load("elastic_acc.rda")
 load("elastic_auc.rda")
+load("rf_acc_test.rda")
+load("rf_auc_test.rda")
+load("bag_acc_test.rda")
+load("bag_auc_test.rda")
+load("xgb_acc_test.rda")
+load("xgb_auc_test.rda")
 ```
 
 ## Data Splitting:
@@ -498,7 +507,7 @@ In order to make predictions to classify areas into low, moderate, or high risk 
 
     ![](https://miro.medium.com/max/1058/1*Jd03Hyt2bpEv1r7UijLlpg.png)
 
-After assessing the performance of each of these models, I will compare their performances evaluated on the Area Under the Receiver Operating Characteristic Curve (ROC AUC) because this metric is a better assessment of imbalanced data than accuracy is.
+After assessing the performance of each of these models on the training data, I will compare their performances evaluated on the Area Under the Receiver Operating Characteristic Curve (ROC AUC) because this metric is a better assessment of imbalanced data than accuracy is. Following this I will identify the three best models and assess their performance on the testing.
 
 ### Linear Discriminant Analysis:
 
@@ -529,7 +538,7 @@ load("lda_fit_cum_folds.rda")
 collect_metrics(lda_fit_cum_folds)
 ```
 
-I then fit the LDA model to the entire training set and evaluated its performance on the testing set by looking at the following:
+I then fit the LDA model to the entire training set and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -579,7 +588,7 @@ load("qda_fit_cum_folds.rda")
 collect_metrics(qda_fit_cum_folds)
 ```
 
-I then fit the QDA model to the entire training set and evaluated its performance on the testing set by looking at the following:
+I then fit the QDA model to the entire training set and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -630,7 +639,7 @@ load("nb_fit_folds.rda")
 collect_metrics(nb_fit_folds)
 ```
 
-I then fit the Naive Bayes model to the entire training set and evaluated its performance on the testing set by looking at the following:
+I then fit the Naive Bayes model to the entire training set and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -684,7 +693,7 @@ load("knn_fit_cum_folds.rda")
 collect_metrics(knn_fit_cum_folds)
 ```
 
-I then fit the K-Nearest Neighbor model to the entire training set and evaluated its performance on the testing set by looking at the following:
+I then fit the K-Nearest Neighbor model to the entire training set and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -741,7 +750,7 @@ tune_res_st <- tune_grid(
 
 #### Performance on different Cost Complexity levels:
 
-```{r}
+```{r, echo = FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("cost_plot.rda")
 
@@ -759,7 +768,7 @@ class_tree_final_fit %>%
   rpart.plot()
 ```
 
-I then fit the Single Decision Tree model to the entire training set using the best cost complexity parameter and evaluated its performance on the testing set by looking at the following:
+I then fit the Single Decision Tree model to the entire training set using the best cost complexity parameter and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -813,7 +822,7 @@ tune_res_bag <- tune_grid(
 
 #### Variable Importance Plot:
 
-```{r}
+```{r, echo = FALSE}
 setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/models")
 load("bag_final_fit.rda")
 
@@ -824,7 +833,7 @@ bag_final_fit %>%
 
 For the Bagged Tree model, the top three most important predictor variables were Hispanic\_., Cardiovascular.Disease, and Mean_Tmax.
 
-I then fit the Bagged Tree model to the entire training set using the best cost complexity parameter and evaluated its performance on the testing set by looking at the following:
+I then fit the Bagged Tree model to the entire training set using the best cost complexity parameter and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -902,9 +911,9 @@ rf_final_fit %>%
   vip()
 ```
 
-For the Random Forest model, the top three most important predictor variables were Hispanic\_., Education, and Unemployment.
+For the Random Forest model, the top three most important predictor variables were Hispanic\_., Education, and Mean_Tmax.
 
-I then fit the Random Forest model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
+I then fit the Random Forest model to the entire training set using the best parameter set and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -937,13 +946,16 @@ The eighth model I trained was an XGBoost model. Here is how I fit the model and
 
     -   `min_n()` is a hyper-parameter used to control the minimum number of data points in a node needed for the node to be split further.
 
+    -   `learn_rate()` is a hyper-parameter used to control how fast the model learns and determines the step size at each iteration while moving toward a minimum of a loss function.
+
 ```{r, eval = FALSE}
 # specifying XGBoost model usingxgboost engine and classification mode. Also identifying which parameters to tune
 xgb_spec <-
   boost_tree(
     mtry = tune(),
     trees = tune(),
-    min_n = tune()
+    min_n = tune(),
+    learn_rate = tune()
   ) %>%
   set_engine('xgboost') %>%
   set_mode('classification')
@@ -955,7 +967,7 @@ xgb_wflow <-
   add_model(xgb_spec)
 
 # parameter search grid
-xgb_grid <- grid_regular(mtry(range = c(2, 21)), trees(range = c(6, 10)), min_n(range = c(3, 5)), levels = 8)
+xgb_grid <- grid_regular(mtry(range = c(2, 21)), trees(range = c(6, 10)), min_n(range = c(3, 5)), learn_rate(range = c(0.0001, 0.1)), levels = 8)
 
 # specifying roc_auc metric and folds
 set.seed(2002)
@@ -988,9 +1000,9 @@ xgb_final_fit %>%
   vip()
 ```
 
-For the XGBoost model, the top three most important predictor variables were Education, Hispanic\_., and White\_..
+For the XGBoost model, the top three most important predictor variables were under_10\_., Education, and Mean_Tmax.
 
-I then fit the XGBoost model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
+I then fit the XGBoost model to the entire training set using the best parameter set and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -1054,7 +1066,7 @@ load("elastic_plot.rda")
 elastic_plot
 ```
 
-I then fit the Elastic-Net Regression model to the entire training set using the best parameter set and evaluated its performance on the testing set by looking at the following:
+I then fit the Elastic-Net Regression model to the entire training set using the best parameter set and evaluated its performance by looking at the following:
 
 #### Accuracy:
 
@@ -1091,7 +1103,7 @@ acc_results %>%
 
 ```
 
-The Elastic-Net Regression model had the highest accuracy of 0.75862 followed by Quadratic Discriminant Analysis with an accuracy of 0.72855, Linear Discriminant Analysis with an accuracy of 0.71552, and Bagged Tree with an accuracy of 0.71551.
+The Bagged Tree model had the highest accuracy of 1.00, followed by XGBoost with an accuracy of 0.9902280, followed by Random Forest with an accuracy of 0.9685125, and a Single Decision Tree with an accuracy of 0.8241042.
 
 #### Model Area Under the Receiver Operator Characteristic Curve:
 
@@ -1111,11 +1123,35 @@ load("visuals/performance_bar.rda")
 performance_bar
 ```
 
-The Bagged Tree model had the highest AUC of 0.89386 followed by XGBoost with an AUC of 0.89339, Elastic-Net Regression with an AUC of 0.88117, and Linear Discriminant Analysis with an AUC of 0.88044. It is an interesting discovery to see that the measurements for Accuracy and AUC are not the same order. Again I will be basing model performance off of AUC due to the imbalance of data.
+The Bagged Tree model had the highest AUC of 1, followed by XGBoost with an AUC of 0.9997908, followed by Random Forest with an AUC of 0.9972315, and a Single Decision Tree with an AUC of 0.9287136. Again I will be basing model performance off of AUC due to the imbalance of data.
+
+### Comparing Top Three Model Performance on Testing Data:
+
+Now let's see how the top performing models perform on the testing data.
+
+#### Model Accuracy on Testing Data:
+
+```{r, echo = FALSE}
+performance <- c(bag_acc_test$.estimate, rf_acc_test$.estimate, xgb_acc_test$.estimate)
+models <- c("Bagged Tree", "Random Forest", "XGBoost")
+acc_results_test <- tibble(Accuracy = performance, models = models)
+acc_results_test %>% 
+  arrange(-performance)
+```
+
+#### AUC on Testing Data:
+
+```{r, echo = FALSE}
+performance <- c(bag_auc_test$.estimate, rf_auc_test$.estimate, xgb_auc_test$.estimate)
+models <- c("Bagged Tree", "Random Forest", "XGBoost")
+auc_results_test <- tibble(AUC = performance, models = models)
+auc_results_test %>% 
+  arrange(-performance)
+```
 
 ## Best Model: Bagged Tree
 
-With an AUC of 0.89386, the best model I built was the Bagged Tree Model.
+With an AUC of 0.8958979, the best model I built was the Bagged Tree Model.
 
 We can take a close look at a confusion matrix of the bagged tree model's performance on the testing data.
 
@@ -1124,9 +1160,9 @@ load("models/bag_conf_matx.rda")
 bag_conf_matx
 ```
 
-We can also take another look at he Variable Importance Plot to see which variables were the most influential in categorizing communities into their risk levels.
+We can also take another look at the Variable Importance Plot again to see which variables were the most influential in categorizing communities into their risk levels.
 
-```{r}
+```{r, echo = FALSE}
 rf_final_fit %>%
   extract_fit_parsnip() %>%
   vip()
@@ -1199,7 +1235,7 @@ These results may appear to be excellent but we have to remember that this model
 
 # Conclusion
 
-After exploring this data of different communities in California and fitting several machine learning models to predict Covid-19 outbreak risk, I have found that the Bootstrap Aggregated Decision Trees model performs the best according to Area Under the Receiver Operator Curve. Using this model, I found that the top five predictor variables for classifying communities into risk classifications are: Hispanic\_., Education, Unemployment, Mean_Tmax, and Linguistic.Isolation.
+After exploring this data of different communities in California and fitting several machine learning models to predict Covid-19 outbreak risk, I have found that the Bootstrap Aggregated Decision Trees model performs the best according to Area Under the Receiver Operator Curve. Using this model, I found that the top five predictor variables for classifying communities into risk classifications are: Hispanic\_., Education, Mean_Tmax, Cardiovascular.Disease, and under_10\_..
 
 Through exploratory data analysis I found that there is a large correlation between socioeconomic factors such as poorer education, high poverty rate, low median family income, and linguistic isolation and high risk for Covid-19 outbreaks. These relationships point to how communities struggling with more socioeconomic problems are at a disproportionate risk for Covid-19 outbreaks. As a result of this project, I would consider the Covid-19 pandemic a public health concern as well as a socioeconomic concern.
 

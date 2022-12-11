@@ -133,15 +133,15 @@ augment(knn_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
 ```
 
 ```{r}
-knn_acc <- augment(knn_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
+knn_acc_test <- augment(knn_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
-knn_acc
+knn_acc_test
 ```
 
 
 ROC Curve:
 ```{r}
-roc <- augment(knn_fit_cum, pandemic_cum_test[,-1])
+roc <- augment(knn_fit_cum, pandemic_cum_train[,-1])
 
 knn_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%

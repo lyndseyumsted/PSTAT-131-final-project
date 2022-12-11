@@ -156,13 +156,14 @@ And again:
 predict(qda_fit_cum, new_data = pandemic_cum_train[,-1], type = "prob")
 ```
 
-We can view a confidence matrix and calculate accuracy on the **training data**:
+We can view a confidence matrix and calculate accuracy on the **testing data**:
 
 ```{r}
-augment(qda_fit_cum, new_data = pandemic_cum_train[,-1]) %>%
+augment(qda_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
   conf_mat(truth = risk, estimate = .pred_class) 
 ```
 
+training:
 ```{r}
 qda_acc <- augment(qda_fit_cum, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
@@ -192,7 +193,7 @@ nb_fit <- fit(nb_wkflow, pandemic_cum_train[,-1])
 And again:
 
 ```{r, message =FALSE}
-predict(nb_fit, new_data = pandemic_cum_train[,-1], type = "prob")
+predict(nb_fit, new_data = pandemic_cum_test[,-1], type = "prob")
 ```
 
 We can view a confusion matrix and calculate accuracy on the **training data**:
@@ -292,9 +293,9 @@ collect_metrics(nb_fit_folds)
 ```
 
 
-## Fitting to Testing Data
+## Fitting to Training Data
 
-Since the QDA model performed slightly better, we'll go ahead and fit it to the testing data. In future weeks, we'll cover how to use cross-validation to try out different values for models' tuning parameters, but for now, this is a general overview of the process.
+Since the QDA model performed slightly better, we'll go ahead and fit it to the training data.
 
 ```{r}
 predict(qda_fit_cum, new_data = pandemic_cum_test[,-1], type = "prob")
@@ -307,23 +308,23 @@ augment(qda_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
   conf_mat(truth = risk, estimate = .pred_class) 
 ```
 
-We can also look at the **testing** accuracy. Here, we add two other metrics, sensitivity and specificity, out of curiosity:
+We can also look at the **training** accuracy. Here, we add two other metrics, sensitivity and specificity, out of curiosity:
 
 ```{r}
 multi_metric <- metric_set(accuracy, sensitivity, specificity)
 
-qda_performance <- augment(qda_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
+qda_performance <- augment(qda_fit_cum, new_data = pandemic_cum_train[,-1]) %>%
   multi_metric(truth = risk, estimate = .pred_class)
 
 qda_performance
 ```
 
-Finally, let's look at an ROC curve on the testing data:
+Finally, let's look at an ROC curve on the training data:
 
 
 ROC Curve:
 ```{r}
-roc <- augment(qda_fit_cum, pandemic_cum_test[,-1])
+roc <- augment(qda_fit_cum, pandemic_cum_train[,-1])
 
 qda_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
@@ -365,12 +366,12 @@ nb_performance <- augment(nb_fit, new_data = pandemic_cum_test[,-1]) %>%
 nb_performance
 ```
 
-Finally, let's look at an ROC curve on the testing data:
+Finally, let's look at an ROC curve on the training data:
 
 
 ROC Curve:
 ```{r}
-roc <- augment(nb_fit, pandemic_cum_test[,-1])
+roc <- augment(nb_fit, pandemic_cum_train[,-1])
 
 nb_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
@@ -412,12 +413,12 @@ lda_performance <- augment(lda_fit_cum, new_data = pandemic_cum_test[,-1]) %>%
 lda_performance
 ```
 
-Finally, let's look at an ROC curve on the testing data:
+Finally, let's look at an ROC curve on the training data:
 
 
 ROC Curve:
 ```{r}
-roc <- augment(lda_fit_cum, pandemic_cum_test[,-1])
+roc <- augment(lda_fit_cum, pandemic_cum_train[,-1])
 
 lda_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
@@ -435,7 +436,7 @@ lda_auc
 
 ## Comparing Model Performance
 
-Now we can make a table of the accuracy rates from these two models to choose the model that produced the highest accuracy on the testing data:
+Now we can make a table of the accuracy rates from these two models to choose the model that produced the highest accuracy on the training data:
 ```{r}
 performance <- c(qda_acc$.estimate, nb_acc$.estimate,  lda_acc$.estimate)
 models <- c("QDA", "Naive Bayes", "LDA")

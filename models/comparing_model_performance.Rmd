@@ -39,6 +39,12 @@ load("xgb_acc.rda")
 load("xgb_auc.rda")
 load("elastic_acc.rda")
 load("elastic_auc.rda")
+load("rf_acc_test.rda")
+load("rf_auc_test.rda")
+load("bag_acc_test.rda")
+load("bag_auc_test.rda")
+load("xgb_acc_test.rda")
+load("xgb_auc_test.rda")
 ```
 
 
@@ -90,6 +96,30 @@ setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project")
 save(performance_bar, file = "visuals/performance_bar.rda")
 ```
 
+Comparing Accuracy on Testing:
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/visuals")
+
+performance <- c(bag_acc_test$.estimate, rf_acc_test$.estimate, xgb_acc_test$.estimate)
+models <- c("Bagged Tree", "Random Forest", "XGBoost")
+acc_results_test <- tibble(Accuracy = performance, models = models)
+acc_results_test %>% 
+  arrange(-performance)
+
+save(acc_results_test, file = "acc_results_test.rda")
+```
 
 
+Comparing AUC on Testing:
+```{r}
+setwd("C:/Users/18586/Desktop/PSTAT 131/PSTAT-131-final-project/visuals")
+performance <- c(bag_auc_test$.estimate, rf_auc_test$.estimate, xgb_auc_test$.estimate)
+models <- c("Bagged Tree", "Random Forest", "XGBoost")
+auc_results_test <- tibble(AUC = performance, models = models)
+auc_results_test %>% 
+  arrange(-performance)
+
+
+save(auc_results_test, file = "auc_results_test.rda")
+```
 

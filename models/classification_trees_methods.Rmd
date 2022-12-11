@@ -155,9 +155,9 @@ class_tree_final_fit %>%
   rpart.plot()
 ```
 
-Accuracy on testing set:
+Accuracy on training set:
 ```{r}
-single_tree_acc <- augment(class_tree_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+single_tree_acc <- augment(class_tree_final_fit, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 
 single_tree_acc
@@ -172,7 +172,7 @@ augment(class_tree_final_fit, new_data = pandemic_cum_test[,-1]) %>%
 
 ROC Curve:
 ```{r}
-roc <- augment(class_tree_final_fit, pandemic_cum_test[,-1])
+roc <- augment(class_tree_final_fit, pandemic_cum_train[,-1])
 
 single_tree_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
@@ -226,9 +226,9 @@ save(bag_final_fit, file = "bag_final_fit.rda")
 ```
 
 
-testing performance:
+training performance:
 ```{r}
-bagged_acc <- augment(bag_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+bagged_acc <- augment(bag_final_fit, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 bagged_acc
 ```
@@ -246,7 +246,7 @@ save(bag_conf_matx, file = "bag_conf_matx.rda")
 
 ROC Curve:
 ```{r}
-roc <- augment(bag_final_fit, pandemic_cum_test[,-1])
+roc <- augment(bag_final_fit, pandemic_cum_train[,-1])
 
 bag_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
@@ -328,16 +328,16 @@ save(rf_final_fit, file = "rf_final_fit.rda")
 
 
 
-accuracy on training:
+accuracy on testing:
 ```{r}
-augment(rf_final_fit, new_data = pandemic_cum_train[,-1]) %>%
+augment(rf_final_fit, new_data = pandemic_cum_test[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 ```
 
 
-accuracy on testing:
+accuracy on training:
 ```{r}
-rf_acc <- augment(rf_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+rf_acc <- augment(rf_final_fit, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 rf_acc
 ```
@@ -351,7 +351,7 @@ augment(rf_final_fit, new_data = pandemic_cum_test[,-1]) %>%
 
 ROC Curve:
 ```{r}
-roc <- augment(rf_final_fit, pandemic_cum_test[,-1])
+roc <- augment(rf_final_fit, pandemic_cum_train[,-1])
 
 rf_roc <- roc %>%
   roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
@@ -395,6 +395,60 @@ results <- tibble(AUC = performance, models = models)
 results %>% 
   arrange(-performance)
 ```
+
+
+
+Testing Performance Random Forest:
+```{r}
+
+rf_acc_test <- augment(rf_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+rf_acc_test
+
+roc <- augment(rf_final_fit, pandemic_cum_test[,-1])
+
+rf_roc_test <- roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+
+rf_roc_test
+
+
+rf_auc_test <- roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+rf_auc_test
+
+save(rf_acc_test, file = "rf_acc_test.rda")
+save(rf_auc_test, file = "rf_auc_test.rda")
+```
+
+Testing Performance Bagged Tree:
+```{r}
+
+bag_acc_test <- augment(bag_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+bag_acc_test
+
+roc <- augment(bag_final_fit, pandemic_cum_test[,-1])
+
+bag_roc_test <- roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+
+bag_roc_test
+
+
+bag_auc_test <- roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+bag_auc_test
+
+save(bag_acc_test, file = "bag_acc_test.rda")
+save(bag_auc_test, file = "bag_auc_test.rda")
+```
+
+
+
+
 
 Saving Performances:
 ```{r}

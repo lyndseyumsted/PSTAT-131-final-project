@@ -65,12 +65,13 @@ pandemic_cum_rec <- recipe(risk ~ ., data = pandemic_cum_train[,-1]) %>%
 ```
 
 ```{r}
-set.seed(123)
+set.seed(2002)
 xgb_spec <-
   boost_tree(
     mtry = tune(),
     trees = tune(),
-    min_n = tune()
+    min_n = tune(),
+    learn_rate = tune()
   ) %>%
   set_engine('xgboost') %>%
   set_mode('classification')
@@ -81,8 +82,10 @@ xgb_wflow <-
   add_recipe(pandemic_cum_rec) %>%
   add_model(xgb_spec)
 
-xgb_grid <- grid_regular(mtry(range = c(2, 21)), trees(range = c(6, 10)), min_n(range = c(3, 5)), levels = 8)
 
+xgb_grid <- grid_regular(mtry(range = c(2, 21)), trees(range = c(6,10)), min_n(range = c(3, 5)), learn_rate(range = c(0.0001,0.1)), levels = 8)
+
+set.seed(2002)
 # tune mtry, trees, min_n, tree_depth, etc.
 xgb_res <-
   tune_grid(
@@ -100,6 +103,7 @@ save(xgb_plot, file = "xgb_plot.rda")
 ```
 
 ```{r}
+library(vip)
 best <- select_best(xgb_res)
 
 xgb_final <- finalize_workflow(xgb_wflow, best)
@@ -113,16 +117,16 @@ xgb_final_fit %>%
   vip()
 ```
 
-accuracy on training:
+accuracy on testing:
 ```{r}
-augment(xgb_final_fit, new_data = pandemic_cum_train[,-1]) %>%
+augment(xgb_final_fit, new_data = pandemic_cum_test[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 ```
 
 
-accuracy on testing:
+accuracy on training:
 ```{r}
-xgb_acc <- augment(xgb_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+xgb_acc <- augment(xgb_final_fit, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 xgb_acc
 ```
@@ -131,7 +135,7 @@ xgb_acc
 
 AUC:
 ```{r}
-roc <- augment(xgb_final_fit, pandemic_cum_test[,-1])
+roc <- augment(xgb_final_fit, pandemic_cum_train[,-1])
 
 xgb_auc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
@@ -159,6 +163,34 @@ xgb_conf_matx
 
 save(xgb_conf_matx, file = "xgb_conf_matx.rda")
 ```
+
+
+Testing Performance:
+```{r}
+xgb_acc_test <- augment(xgb_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+  accuracy(truth = risk, estimate = .pred_class)
+xgb_acc_test
+
+
+roc <- augment(xgb_final_fit, pandemic_cum_test[,-1])
+
+xgb_auc_test <- roc %>%
+  roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
+
+xgb_auc_test
+
+xgb_roc_test <- roc %>%
+  roc_curve(risk, c(.pred_low, .pred_moderate, .pred_high)) %>%
+  autoplot()
+
+xgb_roc_test
+
+save(xgb_acc_test, file = "xgb_acc_test.rda")
+save(xgb_auc_test, file = "xgb_auc_test.rda")
+```
+
+
+
 
 Saving Performance:
 ```{r}

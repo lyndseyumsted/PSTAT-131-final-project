@@ -88,7 +88,7 @@ elastic_plot
 save(elastic_plot, file = "elastic_plot.rda")
 ```
 
-Best penalty accuracy on testing set:
+Best penalty accuracy on training set:
 ```{r}
 best_penalty <- select_best(tune_res_elastic, metric = "roc_auc")
 best_penalty
@@ -98,7 +98,7 @@ elastic_final <- finalize_workflow(elastic_workflow, best_penalty)
 
 elastic_final_fit <- fit(elastic_final, data = pandemic_cum_train[,-1])
 
-elastic_acc <- augment(elastic_final_fit, new_data = pandemic_cum_test[,-1]) %>%
+elastic_acc <- augment(elastic_final_fit, new_data = pandemic_cum_train[,-1]) %>%
   accuracy(truth = risk, estimate = .pred_class)
 
 elastic_acc
@@ -106,7 +106,7 @@ elastic_acc
 
 AUC:
 ```{r}
-roc <- augment(elastic_final_fit, pandemic_cum_test[,-1])
+roc <- augment(elastic_final_fit, pandemic_cum_train[,-1])
 
 elastic_auc <- roc %>%
   roc_auc(risk, c(.pred_low, .pred_moderate, .pred_high))
