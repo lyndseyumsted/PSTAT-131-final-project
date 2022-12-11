@@ -1,0 +1,43 @@
+Mean_Max: Highest recorded temperature in degrees Celsius.
+
+Urban: Flag for urban tract.
+
+PovertyRate: Share of the tract population living with income at or below the Federal poverty thresholds for family size.
+
+MedianFamilyIncome: Tract median family income.
+
+Traffic: Traffic density, in vehicle-kilometers per hour per road length, within 150 meters of the census tract boundary.
+
+Sold.Waste: Sum of weighted solid waste sites and facilities (SWIS) within  buffered distances to populated blocks of census tracts.
+
+Asthma: Age-adjusted rate of emergency department visits for asthma.
+
+Low.Birth.Weight: Percentage of low birth weights.
+
+Cardiovascular.Disease: Age-adjusted rate of emergency department visits for heart attacks per 10,000.
+
+Education: Percent of population over 25 with less than a high school education.
+
+Linguistic.Isolation: Percent limited English speaking households.
+
+Unemployment: Percent of the population over the age of 16 that is unemployed and eligible for the labor force.
+
+under_10_.: Percent of the population of the age 10 or younger.
+
+Age11_to_64_.: Percent of the population between the ages 11 and 64.
+
+over_65_.: Percent of the population of the age 65 or older.
+
+Hispanic_.: Percent of the population that is Hispanic.
+
+White_.: Percent of the population that is White.
+
+African_Am_.: Percent of the population that is African American.
+
+Asian_Am_.: Percent of the population that is Asian American.
+
+Native_Am_.: Percent of the population that is Native American
+
+Other_ethnicity_.: Percent of the population that belongs to an ethnic group not identified above.
+
+risk: Risk level for Covid-19 outbreak (low, moderate, high)
